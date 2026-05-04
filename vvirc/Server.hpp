@@ -1,4 +1,3 @@
-// ── Server.hpp ──
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
@@ -11,12 +10,9 @@ class Client;
 
 class Server {
 public:
-	// Construct server and start listening.
 	Server(int port, const std::string &password);
-	// Destroy server and close fds.
 	~Server();
 
-	// Main loop (will be filled later).
 	void run();
 
 private:
@@ -24,15 +20,12 @@ private:
 	Server(const Server &other);
 	Server &operator=(const Server &other);
 
-	// Setup server socket.
 	void setupSocket();
-	// Accept a new client (stub for now).
+	// Accept a new client 
 	void acceptClient();
-	// Handle a client fd (stub for now).
+	// Handle a client fd 
 	void handleClient(int fd);
-	// Disconnect a client (stub for now).
 	void disconnectClient(int fd);
-	// Process a complete line (stub for now).
 	void processLine(int fd, const std::string &line);
 	// Send a message to a client.
 	void sendTo(int fd, const std::string &msg);

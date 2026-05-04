@@ -63,10 +63,7 @@ void Server::setupSocket() {
 	if (_serverFd < 0) {
 		throw std::runtime_error("socket failed");
 	}
-	int flags = fcntl(_serverFd, F_GETFL, 0);
-	if (flags >= 0) {
-		fcntl(_serverFd, F_SETFL, flags | O_NONBLOCK);
-	}
+	fcntl(_serverFd, F_SETFL, O_NONBLOCK);
 	int yes = 1;
 	setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
@@ -96,15 +93,12 @@ void Server::acceptClient() {
 	socklen_t len = sizeof(addr);
 	int clientFd = accept(_serverFd, (struct sockaddr*)&addr, &len);
 	if (clientFd < 0) {
-		if (errno == EAGAIN || errno == EWOULDBLOCK) {
-			return;
-		}
+		// if (errno == EAGAIN || errno == EWOULDBLOCK) {
+		// 	return;
+		// }
 		return;
 	}
-	int flags = fcntl(clientFd, F_GETFL, 0);
-	if (flags >= 0) {
-		fcntl(clientFd, F_SETFL, flags | O_NONBLOCK);
-	}
+	fcntl(clientFd, F_SETFL, O_NONBLOCK);
 	struct pollfd pfd;
 	pfd.fd = clientFd;
 	pfd.events = POLLIN;
@@ -118,9 +112,9 @@ void Server::handleClient(int fd) {
 	char buffer[512];
 	ssize_t n = recv(fd, buffer, sizeof(buffer), 0);
 	if (n <= 0) {
-		if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-			return;
-		}
+		// if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		// 	return;
+		// }
 		disconnectClient(fd);
 		return;
 	}
@@ -153,67 +147,4 @@ void Server::disconnectClient(int fd) {
 	}
 }
 
-// Process a complete line (stub).
-void Server::processLine(int fd, const std::string &line) {
-	Client *client = _clients[fd];
-	std::vector<std::string> parts;
-	std::string token;
-	for (size_t i = 0; i < line.size(); ++i) {
-		if (line[i] == ' ') {
-			if (!token.empty()) {
-				parts.push_back(token);
-				token.clear();
-			}
-		} else {
-			token += line[i];
-		}
-	}
-	if (!token.empty()) {
-		parts.push_back(token);
-	}
-	if (parts.empty()) {
-		return;
-	}
 
-	std::string cmd = parts[0];
-	if (cmd == "PASS") {
-		if (parts.size() < 2) {
-			sendTo(fd, "464 :Password mismatch");
-			disconnectClient(fd);
-			return;
-		}
-		if (parts[1] != _password) {
-			sendTo(fd, "464 :Password mismatch");
-			disconnectClient(fd);
-			return;
-		}
-		client->setAuthenticated(true);
-		return;
-	}
-
-	if (!client->isAuthenticated()) {
-		sendTo(fd, "464 :Password mismatch");
-		disconnectClient(fd);
-		return;
-	}
-
-	if (cmd == "PING") {
-		if (parts.size() >= 2) {
-			sendTo(fd, "PONG " + parts[1]);
-		} else {
-			sendTo(fd, "PONG");
-		}
-		return;
-	}
-
-	if (cmd == "QUIT") {
-		disconnectClient(fd);
-		return;
-	}
-}
-
-// Send a message to a client.
-void Server::sendTo(int fd, const std::string &msg) {
-	std::string wire = msg + "\r\n";
-	send(fd, wire.c_str(), wire.size(), 0);
-}
