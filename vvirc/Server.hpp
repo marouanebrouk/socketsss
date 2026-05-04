@@ -5,6 +5,18 @@
 #include <string>
 #include <vector>
 #include <poll.h>
+#include <cstdlib>
+#include <iostream>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+
 
 class Client;
 
@@ -30,11 +42,17 @@ private:
 	// Send a message to a client.
 	void sendTo(int fd, const std::string &msg);
 
+
 	int         _serverFd;
 	int         _port;
 	std::string _password;
 	std::vector<struct pollfd> _pollfds;
 	std::map<int, Client*> _clients;
+
+	static int getserverfd(const Server& server)
+	{
+		return  server._serverFd;
+	};
 };
 
 #endif

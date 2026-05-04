@@ -22,10 +22,8 @@ int main(void)
     if (sockfd < 0)
         return (1);
 
-    struct timeval tv;
-tv.tv_sec = 5;  // 5 seconds
-tv.tv_usec = 0;    
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&tv, sizeof(tv)); //-> set the socket option (SO_REUSEADDR) to reuse the address
+int yes = 1;  
+    // setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(tv)); //-> set the socket option (SO_REUSEADDR) to reuse the address
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8080);

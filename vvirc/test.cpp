@@ -12,21 +12,24 @@
 #include <unistd.h>
 
 
-// Process a complete line (stub).
+// Process a complete line
 void Server::processLine(int fd, const std::string &line) {
 	Client *client = _clients[fd];
 	std::vector<std::string> parts;
 	std::string token;
-	for (size_t i = 0; i < line.size(); ++i) {
+	for (size_t i = 0; i < line.size(); ++i) 
+	{
 		if (line[i] == ' ') {
 			if (!token.empty()) {
 				parts.push_back(token);
 				token.clear();
 			}
-		} else {
+		} 
+		else 
 			token += line[i];
-		}
 	}
+
+
 	if (!token.empty()) {
 		parts.push_back(token);
 	}
@@ -37,12 +40,12 @@ void Server::processLine(int fd, const std::string &line) {
 	std::string cmd = parts[0];
 	if (cmd == "PASS") {
 		if (parts.size() < 2) {
-			sendTo(fd, "464 :Password mismatch");
+			sendTo(fd, "need password");
 			disconnectClient(fd);
 			return;
 		}
 		if (parts[1] != _password) {
-			sendTo(fd, "464 :Password mismatch");
+			sendTo(fd, "Password mismatch");
 			disconnectClient(fd);
 			return;
 		}
@@ -51,7 +54,7 @@ void Server::processLine(int fd, const std::string &line) {
 	}
 
 	if (!client->isAuthenticated()) {
-		sendTo(fd, "464 :Password mismatch");
+		sendTo(fd, "Password mismatch");
 		disconnectClient(fd);
 		return;
 	}
@@ -70,6 +73,9 @@ void Server::processLine(int fd, const std::string &line) {
 		return;
 	}
 }
+
+
+
 
 // Send a message to a client.
 void Server::sendTo(int fd, const std::string &msg) {

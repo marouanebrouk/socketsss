@@ -31,9 +31,21 @@ Server::~Server() {
 	}
 }
 
+
+#include <signal.h>
+
+void siginthandler(int sig)
+{
+	if (sig == SIGINT)
+	{
+		int fd = getserverfd();
+		close (fd);
+	}
+}
+
 // Main loop using poll().
 void Server::run() {
-	while (true) {
+	while (signal()) {
 		int ret = poll(&_pollfds[0], _pollfds.size(), -1);
 		if (ret < 0) {
 			if (errno == EINTR) {
@@ -63,7 +75,7 @@ void Server::setupSocket() {
 	if (_serverFd < 0) {
 		throw std::runtime_error("socket failed");
 	}
-	fcntl(_serverFd, F_SETFL, O_NONBLOCK);
+	// fcntl(_serverFd, F_SETFL, O_NONBLOCK);
 	int yes = 1;
 	setsockopt(_serverFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
