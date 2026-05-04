@@ -1,4 +1,4 @@
-#include <unistd.h>
+    #include <unistd.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
@@ -7,6 +7,9 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
+#include <iostream>
+
+
 
 int main(void)
 {
@@ -19,6 +22,11 @@ int main(void)
     if (sockfd < 0)
         return (1);
 
+    struct timeval tv;
+tv.tv_sec = 5;  // 5 seconds
+tv.tv_usec = 0;    
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&tv, sizeof(tv)); //-> set the socket option (SO_REUSEADDR) to reuse the address
+
     addr.sin_family = AF_INET;
     addr.sin_port = htons(8080);
     addr.sin_addr.s_addr = INADDR_ANY;
@@ -28,10 +36,12 @@ int main(void)
 
     if (listen(sockfd, 5) < 0)
         return (1);
-
+    
+    std::cout << "before accept :" << std::endl;
     client_fd = accept(sockfd, NULL, NULL);
     if (client_fd < 0)
         return (1);
+    std::cout << "after accept :" << std::endl;
 
     msg = "Hello from server\n";
     send(client_fd, msg, strlen(msg), 0);
