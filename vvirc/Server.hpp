@@ -49,10 +49,10 @@ private:
 	std::vector<struct pollfd> _pollfds;
 	std::map<int, Client*> _clients;
 
-	static int getserverfd(const Server& server)
-	{
-		return  server._serverFd;
-	};
+	// static int getserverfd(const Server& server)
+	// {
+	// 	return  server._serverFd;
+	// };
 };
 
 #endif

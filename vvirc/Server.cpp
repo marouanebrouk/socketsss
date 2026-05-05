@@ -32,20 +32,20 @@ Server::~Server() {
 }
 
 
-#include <signal.h>
+// #include <signal.h>
 
-void siginthandler(int sig)
-{
-	if (sig == SIGINT)
-	{
-		int fd = getserverfd();
-		close (fd);
-	}
-}
+// void siginthandler(int sig)
+// {
+// 	if (sig == SIGINT)
+// 	{
+// 		int fd = getserverfd();
+// 		close (fd);
+// 	}
+// }
 
 // Main loop using poll().
 void Server::run() {
-	while (signal()) {
+	while (true) {
 		int ret = poll(&_pollfds[0], _pollfds.size(), -1);
 		if (ret < 0) {
 			if (errno == EINTR) {
@@ -160,3 +160,22 @@ void Server::disconnectClient(int fd) {
 }
 
 
+
+
+/*
+server + parsing commands(cmd param prefix) NICK \r\nPASS pp\r\n
+
+
+
+
+
+channels (JOIN MODEi+o+k+t+l INVITE KICK TOPIC)
+
+commands (PRVMSG QUIT TOPIC NICK USER)
+bot + file transfere (bonus)
+
+
+
+
+
+*/
