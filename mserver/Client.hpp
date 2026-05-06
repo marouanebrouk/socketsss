@@ -1,21 +1,47 @@
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
+#include <map>
+#include <string>
+#include <vector>
+#include <poll.h>
+#include <iostream>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 class Client
 {
     private:
-        int fd_socket;
-        std::string ip_host;
-        int port;
-        std::string recv_buffer;
-        std::string send_buffer;
-        bool is_operator;
-        bool passed_authentication;
-        bool disconnected;
+        int client_fd;
+        std::string ip_addr;
     public:
-        void nickname () 
-        void username ()
-        void realname ()
-        void registered ()
+        Client(){};
+        int getFD()
+        {
+            return client_fd;
+        }
+        void setFD(int fd)
+        {
+            client_fd = fd;
+        };
+
+        std::string & getIP()
+        {
+            return ip_addr;
+        };
+
+        void setIP(const std::string &ip)
+        {
+            ip_addr = ip;
+        }
         /*
         IRC messages may arrive split or batched
         You must reconstruct full lines (\r\n)

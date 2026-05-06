@@ -12,7 +12,7 @@ int main(int ac, char *av[])
 		std::cerr << "Invalid port" << std::endl;
     try
     {
-        Server server(port, av[1]);
+        Server server(port, av[2]);
         server.setupSocket();
         // server.run();
 

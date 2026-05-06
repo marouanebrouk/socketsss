@@ -21,12 +21,18 @@ class Server
 {
     private:
         int _serverFd;
-        int _port;
         std::string _password;
-    
+        int _port;
+	    std::map<int, Client*> _clients;
+        std::vector<struct pollfd> _pollfds;
+
     public:
         Server(int port, std::string password);
-        ~Server();
-
         void setupSocket();
+        void getallServerData();
+        void handleNewClient();
+        void receiveClientData(int fd);
+        
+
+        ~Server();
 };
