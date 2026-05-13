@@ -1,3 +1,6 @@
+#ifndef SERVER_HPP
+#define SERVER_HPP
+
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -16,13 +19,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include "Client.hpp"
 
 class Server
 {
     private:
-        int _serverFd;
-        std::string _password;
         int _port;
+        std::string _password;
+        int _serverFd;
 	    std::map<int, Client*> _clients;
         std::vector<struct pollfd> _pollfds;
 
@@ -32,7 +36,11 @@ class Server
         void getallServerData();
         void handleNewClient();
         void receiveClientData(int fd);
+        void ignitServer();
         
 
         ~Server();
 };
+
+
+#endif

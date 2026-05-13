@@ -1,3 +1,5 @@
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -24,24 +26,13 @@ class Client
         std::string ip_addr;
     public:
         Client(){};
-        int getFD()
-        {
-            return client_fd;
-        }
-        void setFD(int fd)
-        {
-            client_fd = fd;
-        };
+        Client(int fd, const std::string &ip);
+        int getFD();
+        void setFD(int fd);
 
-        std::string & getIP()
-        {
-            return ip_addr;
-        };
+        std::string & getIP();
 
-        void setIP(const std::string &ip)
-        {
-            ip_addr = ip;
-        }
+        void setIP(const std::string &ip);
         /*
         IRC messages may arrive split or batched
         You must reconstruct full lines (\r\n)
@@ -54,4 +45,6 @@ class Client
         // 5. Relationships
 // list of joined channels (or pointers)
 // maybe pointer/reference to server
-}
+};
+
+#endif

@@ -14,8 +14,7 @@ int main(int ac, char *av[])
     {
         Server server(port, av[2]);
         server.setupSocket();
-        // server.run();
-
+        server.ignitServer();
     }
     catch(const std::exception& e)
     {
