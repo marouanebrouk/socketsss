@@ -24,6 +24,8 @@ class Client
     private:
         int client_fd;
         std::string ip_addr;
+        // recv() is stream-based: accumulate until we can extract full "\r\n" lines.
+        std::string _buffer;
     public:
         Client(){};
         Client(int fd, const std::string &ip);
@@ -33,6 +35,10 @@ class Client
         std::string & getIP();
 
         void setIP(const std::string &ip);
+
+        // Buffer access/manipulation
+        std::string &bufferRef();
+        void appendBuffer(const std::string &chunk);
         /*
         IRC messages may arrive split or batched
         You must reconstruct full lines (\r\n)

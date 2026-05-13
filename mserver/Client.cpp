@@ -21,3 +21,11 @@ Client::Client(int fd, const std::string &ip) : client_fd(fd), ip_addr(ip) {}
         {
             ip_addr = ip;
         }
+
+        std::string &Client::bufferRef() {
+            return _buffer;
+        }
+
+        void Client::appendBuffer(const std::string &chunk) {
+            _buffer += chunk;
+        }

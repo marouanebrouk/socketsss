@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include "Client.hpp"
 
+#include "IrcMessage.hpp"
+
 class Server
 {
     private:
@@ -38,6 +40,8 @@ class Server
         void receiveClientData(int fd);
         void ignitServer();
         void clear_client(int fd);
+        void processLine(int fd, const std::string &line);
+    void dispatchMessage(int fd, const Command &cmd);
 
         ~Server();
 };

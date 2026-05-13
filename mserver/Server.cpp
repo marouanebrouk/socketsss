@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <iostream>
 
+#include "IrcParser.hpp"
+
 Server::Server(int port, std::string password) : _port(port), _password(password), _serverFd(-1) {}
 
 Server::~Server() {}
@@ -67,10 +69,43 @@ void Server::receiveClientData(int fd)
         close(fd);
         return;
     }
-    // bytes_r > 0: print exactly the received data
-    std::cout << "Client <" << fd << "> Data: " << std::string(buffer, bytes_r) << std::endl;
 
-    // here you can add your code to process the received data: parse, check, authenticate, handle the command, etc...
+
+    std::map<int, Client *>::iterator it = _clients.find(fd);
+    if (it == _clients.end() || !it->second)
+        return;
+    Client *client = it->second;
+    client->appendBuffer(std::string(buffer, bytes_r));
+    std::string &buf = client->bufferRef();
+    size_t pos = 0;
+    while ((pos = buf.find("\r\n")) != std::string::npos)
+    {
+        std::string line = buf.substr(0, pos);
+        buf.erase(0, pos + 2);
+        processLine(fd, line);
+    }
+}
+
+void Server::processLine(int fd, const std::string &line)
+{
+    Command cmd;
+    if (!IrcParser::parseLine(line, cmd))
+        return;
+    dispatchMessage(fd, cmd);
+}
+
+void Server::dispatchMessage(int fd, const Command &cmd)
+{
+    // Parser is separated from execution; keep this as the dispatch point.
+    // For now, just log what we parsed.
+    std::cout << "[IRC] fd=" << fd;
+    if (!cmd.getPrefix().empty())
+        std::cout << " prefix='" << cmd.getPrefix() << "'";
+    std::cout << " cmd='" << cmd.getCommand() << "'";
+    const std::vector<std::string> &params = cmd.getParams();
+    for (size_t i = 0; i < params.size(); ++i)
+        std::cout << " param[" << i << "]='" << params[i] << "'";
+    std::cout << std::endl;
 }
 
 void Server::handleNewClient()
@@ -96,6 +131,7 @@ void Server::handleNewClient()
     clienttttt->setFD(clientFd);
     clienttttt->setIP(inet_ntoa(client_sock.sin_addr));
     _clients[clientFd] = clienttttt;
+
     struct pollfd pfd;
     pfd.fd = clientFd;
     pfd.events = POLLIN;
@@ -149,37 +185,35 @@ void Server::ignitServer()
     while (true)
     {
         if (_pollfds.empty())
-        {
             usleep(100000);
-            continue;
-        }
-        int ret = poll(&_pollfds[0], _pollfds.size(), -1);
-        if (ret == -1)
+        else
         {
-            if (errno == EINTR)
-                continue;
-            throw std::runtime_error("poll failed");
-        }
-        for (size_t i = 0; i < _pollfds.size(); ++i)
-        {
-            short revents = _pollfds[i].revents;
-            int fd = _pollfds[i].fd;
-            if (revents & (POLLERR | POLLHUP | POLLNVAL))
+            int ret = poll(&_pollfds[0], _pollfds.size(), -1);
+            if (ret == -1)
             {
-                // clean up this client
-                clear_client(fd);
-                close(fd);
-                // erase the pollfd safely: adjust index and continue
-                _pollfds.erase(_pollfds.begin() + i);
-                --i;
-                continue;
+                if (errno != EINTR)
+                    throw std::runtime_error("poll failed");
             }
-            if (revents & POLLIN)
+            else
             {
-                if (fd == _serverFd)
-                    handleNewClient();
-                else
-                    receiveClientData(fd);
+                for (size_t i = 0; i < _pollfds.size(); ++i)
+                {
+                    short revents = _pollfds[i].revents;
+                    int fd = _pollfds[i].fd;
+                    if (revents & (POLLERR | POLLHUP | POLLNVAL))
+                    {
+                        clear_client(fd);
+                        close(fd);
+                        --i;
+                    }
+                    else if (revents & POLLIN)
+                    {
+                        if (fd == _serverFd)
+                            handleNewClient();
+                        else
+                            receiveClientData(fd);
+                    }
+                }
             }
         }
     }
