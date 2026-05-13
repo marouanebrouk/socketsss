@@ -2,7 +2,7 @@
 #define IRCPARSER_HPP
 
 #include <string>
-#include "IrcMessage.hpp"
+#include "IrcCommand.hpp"
 
 class IrcParser {
 public:

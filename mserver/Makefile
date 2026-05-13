@@ -3,7 +3,7 @@ NAME = test_server
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 
-SRCS = Server.cpp Client.cpp main.cpp IrcParser.cpp IrcMessage.cpp
+SRCS = Server.cpp Client.cpp main.cpp IrcParser.cpp IrcCommand.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(NAME) clean

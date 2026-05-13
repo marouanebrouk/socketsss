@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include "Client.hpp"
 
-#include "IrcMessage.hpp"
+#include "IrcCommand.hpp"
 
 class Server
 {
