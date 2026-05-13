@@ -37,7 +37,7 @@ class Server
         void handleNewClient();
         void receiveClientData(int fd);
         void ignitServer();
-        
+        void clear_client(int fd);
 
         ~Server();
 };
