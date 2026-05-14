@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-// Parsed IRC command (one IRC line without the trailing CRLF).
-// Wire format: [:prefix] COMMAND [params] [:trailing]
+// one IRC line without the trailing CRLF.
+// format: [:prefix] COMMAND [params] [:trailing]
 class Command {
 public:
 	Command();
