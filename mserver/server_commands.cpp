@@ -77,7 +77,35 @@ void Server::QUIT_cmd(int fd)
 
 
 
+void Server::JOIN_cmd(int fd, const Command &cmd)
+{
+    if (cmd.getParams().size() < 1)
+    {
+        std::cerr << "JOIN command missing channel name parameter" << std::endl;
+        return;
+    }
+    const std::string &channelName = cmd.getParams()[0];
+    std::map<int, Client *>::iterator it = _clients.find(fd);
+    if (it != _clients.end())
+    {
+        Client *client = it->second;
+        // For now, just log the join attempt. You can add actual channel management later.
+        //here i need to create a channel if it doesn't exist
+        if (_channels.find(channelName) == _channels.end())
+            _channels[channelName] = new Channel();
+        Channel *channel = _channels.find(channelName)->second;
+        channel->addMember(client);
 
+        if (channel->getMembers().size() == 1)
+        {
+            client->setOperator(true);
+        }
+        std::ostringstream oss;
+        oss << "Client <" << fd << "> joined channel " << channelName << std::endl;
+        send(fd, oss.str().c_str(), oss.str().length(), 0);
+        std::cout << oss.str();
+    }
+}
 
 
 
@@ -119,7 +147,7 @@ void Server::NICK_cmd(int fd, const Command &cmd)
 
 void Server::USER_cmd(int fd, const Command &cmd)
 {
-    if (cmd.getParams().size() < 4)
+    if (cmd.getParams().size() < 3)
     {
         std::cerr << "USER command missing parameters" << std::endl;
         return;
@@ -146,6 +174,27 @@ void Server::USER_cmd(int fd, const Command &cmd)
     }
 }
 
+void Server::DebugChannelInfo(const std::string &channelName)
+{
+    std::cout << "waaaaaaaa" << std::endl;
+    std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
+    if (it != _channels.end())
+    {
+        Channel *channel = it->second;
+        std::cout << "Channel: " << channelName << std::endl;
+        std::cout << "Members: ";
+        //cannot use auto here because we use c++98
+        for (std::map<int, Client *>::const_iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++)
+        {
+            std::cout << it->first << " ";
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cout << "Channel " << channelName << " not found." << std::endl;
+    }
+}
 
 
 
@@ -154,6 +203,10 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     if (cmd.getCommand() == "DEBUG")
     {
         DebugClientInfo(fd);
+    }
+    else if (cmd.getCommand() == "DEBUGCHANNEL")
+    {
+        DebugChannelInfo(cmd.getParams()[0]);
     }
     else if (cmd.getCommand() == "PASS")
     {
@@ -169,7 +222,7 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     }
     else if (cmd.getCommand() == "JOIN")
     {
-        // JOIN_cmd(fd, cmd);
+        JOIN_cmd(fd, cmd);
     }
     else if (cmd.getCommand() == "QUIT")
     {

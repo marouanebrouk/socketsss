@@ -21,9 +21,10 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include "Client.hpp"
-
+#include "Channel.hpp"
 #include "IrcCommand.hpp"
 
+class Channel;
 class Server
 {
     private:
@@ -31,6 +32,7 @@ class Server
         std::string _password;
         int _serverFd;
 	    std::map<int, Client*> _clients;
+	    std::map<std::string, Channel*> _channels;
         std::vector<struct pollfd> _pollfds;
 
     public:
@@ -42,10 +44,14 @@ class Server
         void ignitServer();
         void clear_client(int fd);
         void processLine(int fd, const std::string &line);
-    void displayMessage(int fd, const Command &cmd);
-    void command_dispatcher(int fd, const Command &cmd);
-    //commands
+    //debugging methods
     void DebugClientInfo(int fd);
+    void displayMessage(int fd, const Command &cmd);
+    void DebugChannelInfo(const std::string &channelName);
+
+
+    //commands
+    void command_dispatcher(int fd, const Command &cmd);
     void PASS_cmd(int fd, const Command &cmd);
     void QUIT_cmd(int fd);
     void NICK_cmd(int fd, const Command &cmd);

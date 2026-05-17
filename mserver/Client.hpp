@@ -63,14 +63,6 @@ class Client
         IRC messages may arrive split or batched
         You must reconstruct full lines (\r\n)
         */
-
-
-
-
-
-        // 5. Relationships
-// list of joined channels (or pointers)
-// maybe pointer/reference to server
 };
 
 #endif
