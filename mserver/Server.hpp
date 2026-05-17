@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdio.h>
+#include <sstream>
 
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -41,9 +42,16 @@ class Server
         void ignitServer();
         void clear_client(int fd);
         void processLine(int fd, const std::string &line);
-    void dispatchMessage(int fd, const Command &cmd);
-
-        ~Server();
+    void displayMessage(int fd, const Command &cmd);
+    void command_dispatcher(int fd, const Command &cmd);
+    //commands
+    void DebugClientInfo(int fd);
+    void PASS_cmd(int fd, const Command &cmd);
+    void QUIT_cmd(int fd);
+    void NICK_cmd(int fd, const Command &cmd);
+    void USER_cmd(int fd, const Command &cmd);
+    void JOIN_cmd(int fd, const Command &cmd);
+    ~Server();
 };
 
 

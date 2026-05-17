@@ -53,7 +53,7 @@ void Server::receiveClientData(int fd)
     ssize_t bytes_r = recv(fd, buffer, sizeof(buffer), 0);
     if (bytes_r == 0)
     {
-        // orderly shutdown by peer
+        // orderly shutdown by peer which means client has disconnected.
         std::cout << "Client <" << fd << "> Disconnected" << std::endl;
         clear_client(fd);
         close(fd);
@@ -73,7 +73,10 @@ void Server::receiveClientData(int fd)
 
     std::map<int, Client *>::iterator it = _clients.find(fd);
     if (it == _clients.end() || !it->second)
+    {
+        std::cout << "Client not found or invalid" << std::endl;
         return;
+    }
     Client *client = it->second;
     client->appendBuffer(std::string(buffer, bytes_r));
     std::string &buf = client->bufferRef();
@@ -91,13 +94,23 @@ void Server::processLine(int fd, const std::string &line)
     Command cmd;
     if (!IrcParser::parseLine(line, cmd))
         return;
-    dispatchMessage(fd, cmd);
+    displayMessage(fd, cmd);
+    command_dispatcher(fd, cmd);
 }
 
-void Server::dispatchMessage(int fd, const Command &cmd)
+
+
+void Server::displayMessage(int fd, const Command &cmd)
 {
     // Parser is separated from execution; keep this as the dispatch point.
     // For now, just log what we parsed.
+
+
+
+    //[IRC] fd=4 cmd='DEBUG' <<<<<< you want this
+
+    //do this \/
+
     std::cout << "[IRC] fd=" << fd;
     if (!cmd.getPrefix().empty())
         std::cout << " prefix='" << cmd.getPrefix() << "'";
@@ -106,6 +119,9 @@ void Server::dispatchMessage(int fd, const Command &cmd)
     for (size_t i = 0; i < params.size(); ++i)
         std::cout << " param[" << i << "]='" << params[i] << "'";
     std::cout << std::endl;
+
+    // Here you can add code to handle the command, e.g., by calling a method
+    // on the Client object associated with the fd.
 }
 
 void Server::handleNewClient()
@@ -128,6 +144,7 @@ void Server::handleNewClient()
     }
 
     Client *clienttttt = new Client();
+    std::memset((void *)clienttttt, 0, sizeof(Client));
     clienttttt->setFD(clientFd);
     clienttttt->setIP(inet_ntoa(client_sock.sin_addr));
     _clients[clientFd] = clienttttt;
