@@ -94,7 +94,7 @@ void Server::processLine(int fd, const std::string &line)
     Command cmd;
     if (!IrcParser::parseLine(line, cmd))
         return;
-    displayMessage(fd, cmd);
+    // displayMessage(fd, cmd);
     command_dispatcher(fd, cmd);
 }
 

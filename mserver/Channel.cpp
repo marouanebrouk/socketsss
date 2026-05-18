@@ -1,6 +1,21 @@
 #include "Channel.hpp"
 
 
+    Channel::Channel() : name(""), topic("")
+    {
+        _members.clear();
+    }
+
+    Channel::Channel(const std::string& name) : name(name), topic("")
+    {
+        _members.clear();
+    }
+
+    Channel::~Channel()
+    {
+        _members.clear();
+    }
+
     std::string Channel::getName() const
     {
         return name;
@@ -41,3 +56,25 @@
     {
         return _members;
     }
+
+
+    bool Channel::isOperator(Client *client)
+    {
+        return (_operators.find(client->getFD()) != _operators.end());
+    }
+
+    void Channel::addOperator(Client *client)
+    {
+        this->_operators.insert(client->getFD());
+    }
+
+    void Channel::removeOperator(Client *client)
+    {
+        this->_operators.erase(client->getFD());
+    }
+
+    const std::set<int>& Channel::getOperators() const
+    {
+        return _operators;
+    }
+

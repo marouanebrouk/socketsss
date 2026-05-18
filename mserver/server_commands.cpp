@@ -7,10 +7,12 @@ void Server::DebugClientInfo(int fd)
     if (it != _clients.end())
     {
         Client *client = it->second;
-        std::cout << "DEBUG: Client fd=" << fd << " IP=" << client->getIP() << " NICK=" << client->getNick() << " IsAuth=" <<
+        std::ostringstream oss;
+        oss << "DEBUG: Client fd=" << fd << " IP=" << client->getIP() << " NICK=" << client->getNick() << " IsAuth=" <<
         (client->isAuthorized() ? "true" : "false") << " RealName=" << client->getRealName() << " User=" << client->getUser()
-        << " host=" << client->getHost() << " isReg=" << (client->isRegistered() ? "true" : "false") << " isOperator=" <<
-        (client->isOperator() ? "true" : "false") << std::endl;
+        << " host=" << client->getHost() << " isReg=" << (client->isRegistered() ? "true" : "false") << std::endl;
+        std::cout << oss.str();
+        send(fd, oss.str().c_str(), oss.str().length(), 0);
     }
 }
 
@@ -94,23 +96,17 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
         if (_channels.find(channelName) == _channels.end())
             _channels[channelName] = new Channel();
         Channel *channel = _channels.find(channelName)->second;
-        channel->addMember(client);
+        if (!channel->isMember(client->getFD()))
+            channel->addMember(client);
 
         if (channel->getMembers().size() == 1)
-        {
-            client->setOperator(true);
-        }
+            channel->addOperator(client);
         std::ostringstream oss;
         oss << "Client <" << fd << "> joined channel " << channelName << std::endl;
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
     }
 }
-
-
-
-
-
 
 void Server::NICK_cmd(int fd, const Command &cmd)
 {
@@ -133,14 +129,6 @@ void Server::NICK_cmd(int fd, const Command &cmd)
         std::cout << oss.str();
     }
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -176,17 +164,22 @@ void Server::USER_cmd(int fd, const Command &cmd)
 
 void Server::DebugChannelInfo(const std::string &channelName)
 {
-    std::cout << "waaaaaaaa" << std::endl;
     std::map<std::string, Channel *>::iterator it = _channels.find(channelName);
     if (it != _channels.end())
     {
         Channel *channel = it->second;
         std::cout << "Channel: " << channelName << std::endl;
         std::cout << "Members: ";
-        //cannot use auto here because we use c++98
         for (std::map<int, Client *>::const_iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++)
         {
             std::cout << it->first << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "Operators: ";
+        for (std::set<int>::const_iterator it = channel->getOperators().begin(); it != channel->getOperators().end(); it++)
+        {
+            std::cout << *it << " ";
         }
         std::cout << std::endl;
     }
@@ -196,11 +189,42 @@ void Server::DebugChannelInfo(const std::string &channelName)
     }
 }
 
-
+void Server::PART_cmd(int fd, const Command &cmd)
+{
+    if (cmd.getParams().size() < 1)
+    {
+        std::cerr << "PART command missing channel parameter" << std::endl;
+        return;
+    }
+    const std::string &channelName = cmd.getParams()[0];
+    std::map<int, Client *>::iterator it = _clients.find(fd);
+    if (it != _clients.end())
+    {
+        Client *client = it->second;
+        Channel *channel = _channels[channelName];
+        if (channel)
+        {
+            channel->removeMember(client->getFD());
+            channel->removeOperator(client);
+            std::ostringstream oss;
+            oss << "Client <" << fd << "> left channel " << channelName << std::endl;
+            send(fd, oss.str().c_str(), oss.str().length(), 0);
+            std::cout << oss.str();
+        }
+        if (channel->getMembers().size() == 0)
+        {
+            _channels.erase(channelName);
+        }
+        if (!channel)
+            std::cerr << "Channel " << channelName << " not found" << std::endl;
+    }
+    else
+        std::cerr << "Client <" << fd << "> not found" << std::endl;
+}
 
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
-    if (cmd.getCommand() == "DEBUG")
+    if (cmd.getCommand() == "INFO")
     {
         DebugClientInfo(fd);
     }
@@ -227,6 +251,10 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     else if (cmd.getCommand() == "QUIT")
     {
         QUIT_cmd(fd);
+    }
+    else if (cmd.getCommand() == "PART")
+    {
+        PART_cmd(fd, cmd);
     }
     else
         std::cout << "Unknown command '" << cmd.getCommand() << "' from fd=" << fd << std::endl;

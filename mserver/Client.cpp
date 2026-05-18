@@ -61,15 +61,9 @@ Client::Client(int fd, const std::string &ip) : client_fd(fd), ip_addr(ip) {}
         bool Client::isRegistered()  {
             return _isRegistered;
         }
-        bool Client::isOperator()  {
-            return _isOperator;
-        }
         void Client::setAuthorized(bool isAuth) {
             _isAuth = isAuth;
         }
         void Client::setRegistered(bool isReg) {
             _isRegistered = isReg;
-        }
-        void Client::setOperator(bool isOp) {
-            _isOperator = isOp;
         }

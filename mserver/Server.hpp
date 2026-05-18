@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <set>
 #include <poll.h>
 #include <iostream>
 #include <unistd.h>
@@ -57,6 +58,8 @@ class Server
     void NICK_cmd(int fd, const Command &cmd);
     void USER_cmd(int fd, const Command &cmd);
     void JOIN_cmd(int fd, const Command &cmd);
+    void PART_cmd(int fd, const Command &cmd);
+
     ~Server();
 };
 
