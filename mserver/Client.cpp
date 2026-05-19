@@ -54,6 +54,14 @@ Client::Client(int fd, const std::string &ip) : client_fd(fd), ip_addr(ip) {}
         std::string &Client::getHost() {
             return _hostname;
         }
+        std::string &Client::getServer() {
+            return _server;
+        }
+
+        void Client::setServer(const std::string &server) {
+            _server = server;
+        }
+
 
         bool Client::isAuthorized()  {
             return _isAuth;

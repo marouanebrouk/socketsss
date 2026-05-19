@@ -59,6 +59,8 @@ class Server
     void USER_cmd(int fd, const Command &cmd);
     void JOIN_cmd(int fd, const Command &cmd);
     void PART_cmd(int fd, const Command &cmd);
+    void CAP_cmd(int fd, const Command &cmd);
+
 
     ~Server();
 };

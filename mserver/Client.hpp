@@ -30,6 +30,7 @@ class Client
         std::string	_realname;
         std::string	_username;
         std::string _hostname;
+        std::string _server;
         bool        _isAuth;
         bool        _isRegistered;
     public:
@@ -41,6 +42,7 @@ class Client
         std::string &getRealName();
         std::string &getUser();
         std::string &getHost();
+        std::string &getServer();
         bool isAuthorized() ;
         bool isRegistered() ;
 
@@ -50,6 +52,7 @@ class Client
         void setRealName(const std::string &realname);
         void setUser(const std::string &username);
         void setHost(const std::string &hostname);
+        void setServer(const std::string &server);
         void setAuthorized(bool isAuth);
         void setRegistered(bool isReg);
 

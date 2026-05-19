@@ -112,7 +112,7 @@ void Server::NICK_cmd(int fd, const Command &cmd)
 {
     if (cmd.getParams().size() < 1)
     {
-        std::cerr << "NICK command missing nickname parameter" << std::endl;
+        std::cerr << "NICK command missing nickname parameter\r\n" << std::endl;
         return;
     }
     const std::string &nick = cmd.getParams()[0];
@@ -124,7 +124,8 @@ void Server::NICK_cmd(int fd, const Command &cmd)
 
         //buffer this instead of output directly
         std::ostringstream oss;
-        oss << "Client <" << fd << "> changed nickname to " << nick << std::endl;
+        // Welcome to the Internet Relay Network <nick>!<user>@<host> "001"
+        oss << "Welcome to the Internet Relay Network" << " 001 " << nick << "!" << client->getUser() << "@" << client->getHost() << "\r\n";
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
     }
@@ -142,7 +143,8 @@ void Server::USER_cmd(int fd, const Command &cmd)
     }
     const std::string &username = cmd.getParams()[0];
     const std::string &hostname = cmd.getParams()[1];
-    const std::string &realname = cmd.getParams()[2];
+    const std::string &server = cmd.getParams()[2];
+    const std::string &realname = cmd.getParams()[3];
     std::map<int, Client *>::iterator it = _clients.find(fd);
     if (it != _clients.end())
     {
@@ -150,15 +152,17 @@ void Server::USER_cmd(int fd, const Command &cmd)
         client->setUser(username);
         client->setHost(hostname);
         client->setRealName(realname);
+        client->setServer(server);
         // example of a user command :  USER <username> <hostname> <realname>
         //buffer this instead of output directly
         std::ostringstream oss;
-        oss << "Client <" << fd << "> set USER to " << username << ", HOST to " << hostname
-            << ", REALNAME to " << realname << std::endl;
+        oss << "Client <" << fd << "> set USERNAME to " << username << ", HOSTNAME to " << hostname
+            << ", REALNAME to " << realname << ", SERVER to " << server << "\r\n";
 
         client->setRegistered(true);
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
+        send(fd, ":server 001 mbrouk :Welcome to IRC\r\n", 39, 0);
     }
 }
 
@@ -222,6 +226,18 @@ void Server::PART_cmd(int fd, const Command &cmd)
         std::cerr << "Client <" << fd << "> not found" << std::endl;
 }
 
+void Server::CAP_cmd(int fd, const Command &cmd)
+{
+    if (cmd.getCommand() == "CAP")
+    {
+        if (cmd.getParams()[0] == "LS")
+        {
+            send(fd, "CAP * LS :\r\n", 13, 0);
+            std::cout << "Sent CAP * LS :" << std::endl;
+        }
+    }
+}
+
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
     if (cmd.getCommand() == "INFO")
@@ -255,6 +271,13 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     else if (cmd.getCommand() == "PART")
     {
         PART_cmd(fd, cmd);
+    }
+    else if (cmd.getCommand() == "CAP")
+    {
+        CAP_cmd(fd, cmd);
+    }    else if (cmd.getCommand() == "CAP")
+    {
+        CAP_cmd(fd, cmd);
     }
     else
         std::cout << "Unknown command '" << cmd.getCommand() << "' from fd=" << fd << std::endl;
