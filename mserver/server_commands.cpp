@@ -102,7 +102,7 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
         if (channel->getMembers().size() == 1)
             channel->addOperator(client);
         std::ostringstream oss;
-        oss << "Client <" << fd << "> joined channel " << channelName << std::endl;
+        oss << "Client <" << fd << "> joined channel " << channelName << "\r\n";
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
     }
@@ -124,8 +124,7 @@ void Server::NICK_cmd(int fd, const Command &cmd)
 
         //buffer this instead of output directly
         std::ostringstream oss;
-        // Welcome to the Internet Relay Network <nick>!<user>@<host> "001"
-        oss << "Welcome to the Internet Relay Network" << " 001 " << nick << "!" << client->getUser() << "@" << client->getHost() << "\r\n";
+        oss << "nickname changed to " << nick << "\r\n";
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
     }
@@ -151,9 +150,9 @@ void Server::USER_cmd(int fd, const Command &cmd)
         Client *client = it->second;
         client->setUser(username);
         client->setHost(hostname);
-        client->setRealName(realname);
         client->setServer(server);
-        // example of a user command :  USER <username> <hostname> <realname>
+        client->setRealName(realname);
+        // example of a user command :  USER <username> <hostname> <realname> <server>
         //buffer this instead of output directly
         std::ostringstream oss;
         oss << "Client <" << fd << "> set USERNAME to " << username << ", HOSTNAME to " << hostname
@@ -162,7 +161,7 @@ void Server::USER_cmd(int fd, const Command &cmd)
         client->setRegistered(true);
         send(fd, oss.str().c_str(), oss.str().length(), 0);
         std::cout << oss.str();
-        send(fd, ":server 001 mbrouk :Welcome to IRC\r\n", 39, 0);
+        send(fd, ":IRC 001 :Welcome to IRC\r\n", 39, 0);
     }
 }
 
@@ -210,10 +209,12 @@ void Server::PART_cmd(int fd, const Command &cmd)
         {
             channel->removeMember(client->getFD());
             channel->removeOperator(client);
-            std::ostringstream oss;
-            oss << "Client <" << fd << "> left channel " << channelName << std::endl;
-            send(fd, oss.str().c_str(), oss.str().length(), 0);
-            std::cout << oss.str();
+            std::string oss;
+            std::stringstream ss;
+            ss << "Client <" << fd << "> left channel " << channelName << "\r\n";
+            oss = ss.str();
+            send(fd, oss.c_str(), oss.length(), 0);
+            std::cout << oss;
         }
         if (channel->getMembers().size() == 0)
         {
@@ -228,13 +229,11 @@ void Server::PART_cmd(int fd, const Command &cmd)
 
 void Server::CAP_cmd(int fd, const Command &cmd)
 {
-    if (cmd.getCommand() == "CAP")
+    if (cmd.getParams()[0] == "LS")
     {
-        if (cmd.getParams()[0] == "LS")
-        {
-            send(fd, "CAP * LS :\r\n", 13, 0);
-            std::cout << "Sent CAP * LS :" << std::endl;
-        }
+        std::string str = "CAP * LS :\r\n";
+        send(fd, str.c_str(), str.length(), 0);
+        std::cout << "Sent CAP * LS :" << std::endl;
     }
 }
 
@@ -243,6 +242,12 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     if (cmd.getCommand() == "INFO")
     {
         DebugClientInfo(fd);
+    }
+    else if (cmd.getCommand() == "PING")
+    {
+        std::string pong = "PONG :" + cmd.getParams()[0] + "\r\n";
+        send(fd, pong.c_str(), pong.length(), 0);
+        std::cout << "Sent PONG :" << cmd.getParams()[0] << std::endl;
     }
     else if (cmd.getCommand() == "DEBUGCHANNEL")
     {
@@ -273,9 +278,6 @@ void Server::command_dispatcher(int fd, const Command &cmd)
         PART_cmd(fd, cmd);
     }
     else if (cmd.getCommand() == "CAP")
-    {
-        CAP_cmd(fd, cmd);
-    }    else if (cmd.getCommand() == "CAP")
     {
         CAP_cmd(fd, cmd);
     }
