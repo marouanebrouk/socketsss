@@ -18,14 +18,6 @@ void Server::DebugClientInfo(int fd)
 
 
 
-
-
-
-
-
-
-
-
 void Server::PASS_cmd(int fd, const Command &cmd)
 {
     if (cmd.getParams().size() < 1)
@@ -239,6 +231,18 @@ void Server::CAP_cmd(int fd, const Command &cmd)
 
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
+    // i want to implement an authentication function : if the client is not authenticated, reject the command
+    // if (_clients[fd]->isAuthorized() == false)
+    // {
+    //     if (cmd.getCommand() != "PASS" && cmd.getCommand() != "NICK" && cmd.getCommand() != "USER" && cmd.getCommand() != "CAP" && cmd.getCommand() != "QUIT")
+    //     {
+    //         std::string errorMessage = ":irc.server 451 :You have not registered\r\n";
+    //         send(fd, errorMessage.c_str(), errorMessage.length(), 0);
+    //         std::cout << "Sent error: " << errorMessage;
+    //     }
+    //     return;
+    // }
+
     if (cmd.getCommand() == "INFO")
     {
         DebugClientInfo(fd);
