@@ -42,6 +42,7 @@ void Server::clear_client(int fd)
     {
         delete it->second;
         _clients.erase(it);
+        close(fd);
     }
 }
 
@@ -94,7 +95,7 @@ void Server::processLine(int fd, const std::string &line)
     Command cmd;
     if (!IrcParser::parseLine(line, cmd))
         return;
-    displayMessage(fd, cmd);
+    displayMessage(fd, cmd); //for debbuging
     command_dispatcher(fd, cmd);
 }
 

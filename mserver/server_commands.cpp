@@ -18,143 +18,236 @@ void Server::DebugClientInfo(int fd)
 
 
 
+bool Server::isValidNick(const std::string &nick)
+{
+    size_t i;
+
+    if (nick.empty())
+        return (false);
+
+    i = 0;
+    while (i < nick.length())
+    {
+        if (!std::isalnum(nick[i])
+            && nick[i] != '_'
+            && nick[i] != '-')
+            return (false);
+        ++i;
+    }
+    return (true);
+}
+
+bool Server::isValidChannelName(const std::string &name)
+{
+    if (name.empty())
+        return (false);
+
+    if (name[0] != '#')
+        return (false);
+
+    return (true);
+}
+
+bool Server::nickExists(const std::string &nick)
+{
+    std::map<int, Client *>::iterator it;
+
+    it = _clients.begin();
+    while (it != _clients.end())
+    {
+        if (it->second->getNick() == nick)
+            return (true);
+        ++it;
+    }
+    return (false);
+}
+
+
+void Server::sendReply(int fd, const std::string &msg)
+{
+    send(fd, msg.c_str(), msg.size(), 0);
+}
+
+void Server::sendToChannel(Channel *channel,const std::string &msg) //: exlude fd as argument
+{
+    std::map<int, Client *>::const_iterator it;
+
+    it = channel->getMembers().begin();
+
+    while (it != channel->getMembers().end())
+    {
+        // if (it->first != excludeFd)
+            sendReply(it->first, msg);
+        ++it;
+    }
+}
+
+
 void Server::PASS_cmd(int fd, const Command &cmd)
 {
+    Client *client;
+
+    client = _clients[fd];
+
+    if (client->isRegistered())
+    {
+        sendReply(fd,
+            ":irc.server 462 :You may not reregister\r\n");
+        return;
+    }
+
     if (cmd.getParams().size() < 1)
     {
-        std::cerr << "PASS command missing password parameter" << std::endl;
+        sendReply(fd,
+            ":irc.server 461 PASS :Not enough parameters\r\n");
         return;
     }
-    const std::string &password = cmd.getParams()[0];
-    if (password == _password)
+
+    if (cmd.getParams()[0] != _password)
     {
-        std::ostringstream oss;
-        oss << "authenticated successfully" << std::endl;
-        send(fd, oss.str().c_str(), oss.str().length(), 0);
-        std::cout << oss.str();
-        std::map<int, Client *>::iterator it = _clients.find(fd);
-        if (it != _clients.end())
-        {
-            Client *client = it->second;
-            client->setAuthorized(true);
-        }
-    }
-    else
-    {
-        std::cerr << "Client <" << fd << "> failed authentication" << std::endl;
-        std::cout << "try again" << std::endl;
+        sendReply(fd,
+            ":irc.server 464 :Password incorrect\r\n");
         return;
     }
+
+    client->setAuthorized(true);
+
+    registerClient(client);
 }
-
-
-
-
-
-
-
-
-
-
-void Server::QUIT_cmd(int fd)
-{
-    std::map<int, Client *>::iterator it = _clients.find(fd);
-    if (it != _clients.end())
-    {
-        std::cout << "Client <" << fd << "> has quit" << std::endl;
-        send(fd, "Goodbye!\r\n", 10, 0);
-        clear_client(fd);
-        close(fd);
-    }
-}
-
+// quit command should remove the client from all channels and then clear the client data and close the connection
 
 
 
 void Server::JOIN_cmd(int fd, const Command &cmd)
 {
+    Client *client;
+    Channel *channel;
+    std::string channelName;
+    std::string joinMsg;
+
+    client = _clients[fd];
+
     if (cmd.getParams().size() < 1)
     {
-        std::cerr << "JOIN command missing channel name parameter" << std::endl;
+        sendReply(fd,
+            ":irc.server 461 JOIN :Not enough parameters\r\n");
         return;
     }
-    const std::string &channelName = cmd.getParams()[0];
-    std::map<int, Client *>::iterator it = _clients.find(fd);
-    if (it != _clients.end())
-    {
-        Client *client = it->second;
-        // For now, just log the join attempt. You can add actual channel management later.
-        //here i need to create a channel if it doesn't exist
-        if (_channels.find(channelName) == _channels.end())
-            _channels[channelName] = new Channel();
-        Channel *channel = _channels.find(channelName)->second;
-        if (!channel->isMember(client->getFD()))
-            channel->addMember(client);
 
-        if (channel->getMembers().size() == 1)
-            channel->addOperator(client);
-        std::ostringstream oss;
-        oss << "Client <" << fd << "> joined channel " << channelName << "\r\n";
-        send(fd, oss.str().c_str(), oss.str().length(), 0);
-        std::cout << oss.str();
+    channelName = cmd.getParams()[0];
+
+    if (!isValidChannelName(channelName))
+    {
+        sendReply(fd,
+            ":irc.server 403 "
+            + channelName
+            + " :No such channel\r\n");
+        return;
     }
+
+    if (_channels.find(channelName) == _channels.end())
+        _channels[channelName] = new Channel(channelName);
+
+    channel = _channels[channelName];
+
+    if (channel->isMember(fd))
+        return;
+
+    channel->addMember(client);
+
+    if (channel->getMembers().size() == 1)
+        channel->addOperator(client);
+
+    joinMsg = ":"
+        + client->getNick()
+        + "!"
+        + client->getUser()
+        + "@localhost JOIN "
+        + channelName
+        + "\r\n";
+
+    sendToChannel(channel, joinMsg);
 }
+
 
 void Server::NICK_cmd(int fd, const Command &cmd)
 {
+    Client *client;
+    std::string oldNick;
+    std::string newNick;
+    std::string msg;
+
+    client = _clients[fd];
+
     if (cmd.getParams().size() < 1)
     {
-        std::cerr << "NICK command missing nickname parameter\r\n" << std::endl;
+        sendReply(fd,
+            ":irc.server 431 :No nickname given\r\n");
         return;
     }
-    const std::string &nick = cmd.getParams()[0];
-    std::map<int, Client *>::iterator it = _clients.find(fd);
-    if (it != _clients.end())
+
+    newNick = cmd.getParams()[0];
+
+    if (!isValidNick(newNick))
     {
-        Client *client = it->second;
-        client->setNick(nick);
-
-        //buffer this instead of output directly
-        std::ostringstream oss;
-        oss << "nickname changed to " << nick << "\r\n";
-        send(fd, oss.str().c_str(), oss.str().length(), 0);
-        std::cout << oss.str();
+        sendReply(fd,
+            ":irc.server 432 "
+            + newNick
+            + " :Erroneous nickname\r\n");
+        return;
     }
+
+    if (nickExists(newNick)
+        && client->getNick() != newNick)
+    {
+        sendReply(fd,
+            ":irc.server 433 "
+            + newNick
+            + " :Nickname already in use\r\n");
+        return;
+    }
+
+    oldNick = client->getNick();
+
+    client->setNick(newNick);
+
+    if (!oldNick.empty())
+    {
+        msg = ":" + oldNick
+            + " NICK :" + newNick + "\r\n";
+
+        sendReply(fd, msg);
+    }
+
+    registerClient(client);
 }
-
-
-
 
 void Server::USER_cmd(int fd, const Command &cmd)
 {
-    if (cmd.getParams().size() < 3)
+    Client *client;
+
+    client = _clients[fd];
+
+    if (client->isRegistered())
     {
-        std::cerr << "USER command missing parameters" << std::endl;
+        sendReply(fd,
+            ":irc.server 462 :You may not reregister\r\n");
         return;
     }
-    const std::string &username = cmd.getParams()[0];
-    const std::string &hostname = cmd.getParams()[1];
-    const std::string &server = cmd.getParams()[2];
-    const std::string &realname = cmd.getParams()[3];
-    std::map<int, Client *>::iterator it = _clients.find(fd);
-    if (it != _clients.end())
-    {
-        Client *client = it->second;
-        client->setUser(username);
-        client->setHost(hostname);
-        client->setServer(server);
-        client->setRealName(realname);
-        // example of a user command :  USER <username> <hostname> <realname> <server>
-        //buffer this instead of output directly
-        std::ostringstream oss;
-        oss << "Client <" << fd << "> set USERNAME to " << username << ", HOSTNAME to " << hostname
-            << ", REALNAME to " << realname << ", SERVER to " << server << "\r\n";
 
-        client->setRegistered(true);
-        send(fd, oss.str().c_str(), oss.str().length(), 0);
-        std::cout << oss.str();
-        send(fd, ":IRC 001 :Welcome to IRC\r\n", 39, 0);
+    if (cmd.getParams().size() < 4)
+    {
+        sendReply(fd,
+            ":irc.server 461 USER :Not enough parameters\r\n");
+        return;
     }
+
+    client->setUser(cmd.getParams()[0]);
+    // client->setHost(cmd.getParams()[1]);    those two parameters are ignored in most irc servers, so i will ignore them too
+    // client->setServer(cmd.getParams()[2]);
+    client->setRealName(cmd.getParams()[3]);
+
+    registerClient(client);
 }
 
 void Server::DebugChannelInfo(const std::string &channelName)
@@ -186,37 +279,58 @@ void Server::DebugChannelInfo(const std::string &channelName)
 
 void Server::PART_cmd(int fd, const Command &cmd)
 {
+    Client *client;
+    Channel *channel;
+    std::string channelName;
+    std::string msg;
+
+    client = _clients[fd];
+
     if (cmd.getParams().size() < 1)
     {
-        std::cerr << "PART command missing channel parameter" << std::endl;
+        sendReply(fd,
+            ":irc.server 461 PART :Not enough parameters\r\n");
         return;
     }
-    const std::string &channelName = cmd.getParams()[0];
-    std::map<int, Client *>::iterator it = _clients.find(fd);
-    if (it != _clients.end())
+
+    channelName = cmd.getParams()[0];
+
+    if (_channels.find(channelName) == _channels.end())
     {
-        Client *client = it->second;
-        Channel *channel = _channels[channelName];
-        if (channel)
-        {
-            channel->removeMember(client->getFD());
-            channel->removeOperator(client);
-            std::string oss;
-            std::stringstream ss;
-            ss << "Client <" << fd << "> left channel " << channelName << "\r\n";
-            oss = ss.str();
-            send(fd, oss.c_str(), oss.length(), 0);
-            std::cout << oss;
-        }
-        if (channel->getMembers().size() == 0)
-        {
-            _channels.erase(channelName);
-        }
-        if (!channel)
-            std::cerr << "Channel " << channelName << " not found" << std::endl;
+        sendReply(fd,
+            ":irc.server 403 "
+            + channelName
+            + " :No such channel\r\n");
+        return;
     }
-    else
-        std::cerr << "Client <" << fd << "> not found" << std::endl;
+
+    channel = _channels[channelName];
+
+    if (!channel->isMember(fd))
+    {
+        sendReply(fd,
+            ":irc.server 442 "
+            + channelName
+            + " :You're not on that channel\r\n");
+        return;
+    }
+
+    msg = ":"
+        + client->getNick()
+        + " PART "
+        + channelName
+        + "\r\n";
+
+    sendToChannel(channel, msg);
+
+    channel->removeMember(fd);
+    channel->removeOperator(client);
+
+    if (channel->getMembers().empty())
+    {
+        delete channel;
+        _channels.erase(channelName);
+    }
 }
 
 void Server::CAP_cmd(int fd, const Command &cmd)
@@ -229,19 +343,66 @@ void Server::CAP_cmd(int fd, const Command &cmd)
     }
 }
 
+bool Server::canRegister(Client *client)
+{
+    if (!client->isAuthorized())
+        return (false);
+
+    if (client->getNick().empty())
+        return (false);
+
+    if (client->getUser().empty())
+        return (false);
+
+    return (true);
+};
+
+
+void Server::registerClient(Client *client)
+{
+    std::string welcome;
+
+    if (client->isRegistered())
+        return;
+
+    if (!canRegister(client))
+        return;
+
+    client->setRegistered(true);
+
+    welcome = ":irc.server 001 "
+        + client->getNick()
+        + " :Welcome to the IRC server\r\n";
+
+    sendReply(client->getFD(), welcome);
+}
+
+
+bool Server::isAllowedBeforeRegister(const std::string &cmd)
+{
+    return (
+        cmd == "CAP" ||
+        cmd == "PASS" ||
+        cmd == "NICK" ||
+        cmd == "USER" ||
+        cmd == "QUIT" ||
+        cmd == "PING"
+    );
+}
+
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
-    // i want to implement an authentication function : if the client is not authenticated, reject the command
-    // if (_clients[fd]->isAuthorized() == false)
-    // {
-    //     if (cmd.getCommand() != "PASS" && cmd.getCommand() != "NICK" && cmd.getCommand() != "USER" && cmd.getCommand() != "CAP" && cmd.getCommand() != "QUIT")
-    //     {
-    //         std::string errorMessage = ":irc.server 451 :You have not registered\r\n";
-    //         send(fd, errorMessage.c_str(), errorMessage.length(), 0);
-    //         std::cout << "Sent error: " << errorMessage;
-    //     }
-    //     return;
-    // }
+    Client *client = _clients[fd];
+
+    if (!client->isRegistered())
+    {
+        if (!isAllowedBeforeRegister(cmd.getCommand()))
+        {
+            std::string err = ":irc.server 451 * :You have not registered\r\n";
+            send(fd, err.c_str(), err.size(), 0);
+            return;
+        }
+    }
 
     if (cmd.getCommand() == "INFO")
     {
@@ -272,10 +433,6 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     else if (cmd.getCommand() == "JOIN")
     {
         JOIN_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "QUIT")
-    {
-        QUIT_cmd(fd);
     }
     else if (cmd.getCommand() == "PART")
     {

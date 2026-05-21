@@ -56,13 +56,8 @@ class Client
         void setAuthorized(bool isAuth);
         void setRegistered(bool isReg);
 
-        // Buffer access/manipulation
         std::string &bufferRef();
         void appendBuffer(const std::string &chunk);
-        /*
-        IRC messages may arrive split or batched
-        You must reconstruct full lines (\r\n)
-        */
 };
 
 #endif
