@@ -45,24 +45,25 @@ class Server
         void ignitServer();
         void clear_client(int fd);
         void processLine(int fd, const std::string &line);
-    //debugging methods
-    void DebugClientInfo(int fd);
-    void displayMessage(int fd, const Command &cmd);
-    void DebugChannelInfo(const std::string &channelName);
+        //debugging methods
+        void DebugClientInfo(int fd);
+        void displayMessage(int fd, const Command &cmd);
+        void DebugChannelInfo(const std::string &channelName);
 
 
     //commands
     void command_dispatcher(int fd, const Command &cmd);
 
     bool canRegister(Client *client);
-    void registerClient(Client *client);
+    bool registerClient(Client *client);
     bool isAllowedBeforeRegister(const std::string &cmd);
 
     void sendReply(int fd, const std::string &msg);
     bool nickExists(const std::string &nick);
     bool isValidChannelName(const std::string &name);
     bool isValidNick(const std::string &nick);
-    void sendToChannel(Channel *channel,const std::string &msg);
+    void sendToChannel(Channel *channel,const std::string &msg,int excludeFd);
+    Client *getClientByNickname(const std::string &nick);
 
 
     void PASS_cmd(int fd, const Command &cmd);
@@ -71,6 +72,8 @@ class Server
     void JOIN_cmd(int fd, const Command &cmd);
     void PART_cmd(int fd, const Command &cmd);
     void CAP_cmd(int fd, const Command &cmd);
+    void PRIVMSG_cmd(int fd, const Command &cmd);
+
 
 
     ~Server();
