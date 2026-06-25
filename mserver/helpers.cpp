@@ -92,6 +92,7 @@ bool Server::isAllowedBeforeRegister(const std::string &cmd)
         cmd == "NICK" ||
         cmd == "USER" ||
         cmd == "QUIT" ||
-        cmd == "PING"
+        cmd == "PING" ||
+        cmd == "INFO"
     );
 }

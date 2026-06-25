@@ -78,3 +78,10 @@
         return _operators;
     }
 
+
+
+
+void Channel::inviteClient(Client *client)
+{
+    _invited.insert(client->getFD());
+}

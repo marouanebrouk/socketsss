@@ -1,0 +1,47 @@
+to register a user in nc client :
+nc -C server_ip port
+PASS pop
+NICK mero
+USER mero mero mero mero mero (4 fields)
+
+
+in irssi client :
+/connect server_ip port password
+to send message to user : /msg nick :message
+to join channel named test :
+    /join #test
+to send privmsg :
+/msg nick :message
+
+
+
+
+
+TOPIC
+
+Allows:
+TOPIC #general
+to read topic.
+And:
+TOPIC #general :Welcome everybody
+to change topic.
+
+Requirements:
+TOPIC #chan -> display topic
+TOPIC #chan :new topic -> change topic
+only operators can modify topic
+channel must exist
+sender must be member
+
+
+
+INVITE :
+
+Syntax:
+INVITE nick #channel
+
+
+KICK:
+
+KICK #channel nick
+KICK #channel nick :reason

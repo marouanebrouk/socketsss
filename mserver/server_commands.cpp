@@ -347,6 +347,244 @@ void Server::PRIVMSG_cmd(int fd, const Command &cmd)
     }
 }
 
+
+void Server::TOPIC_cmd(int fd, const Command &cmd)
+{
+    Client      *client;
+    Channel     *channel;
+    std::string channelName;
+    std::string msg;
+
+    client = _clients[fd];
+
+    if (cmd.getParams().size() < 1)
+    {
+        sendReply(fd,":irc.server 461 TOPIC :Not enough parameters\r\n");
+        return;
+    }
+
+    channelName = cmd.getParams()[0];
+
+    if (_channels.find(channelName) == _channels.end())
+    {
+        sendReply(fd,":irc.server 403 " + channelName + " :No such channel\r\n");
+        return;
+    }
+
+    channel = _channels[channelName];
+
+    if (!channel->isMember(fd))
+    {
+        sendReply(fd,":irc.server 442 " + channelName + " :You're not on that channel\r\n");
+        return;
+    }
+
+    /*
+    ** READ TOPIC
+    */
+    if (cmd.getParams().size() == 1)
+    {
+        if (channel->getTopic().empty())
+        {
+            sendReply(fd,":irc.server 331 "+ client->getNick()+ " " + channelName + " :No topic is set\r\n");
+        }
+        else
+        {
+            sendReply(fd,":irc.server 332 "+ client->getNick()+ " "+ channelName+ " :" + channel->getTopic() + "\r\n");
+        }
+        return;
+    }
+
+    /*
+    ** SET TOPIC
+    */
+    if (!channel->isOperator(client))
+    {
+        sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
+
+    channel->setTopic(cmd.getParams()[1]);
+
+    msg = ":" + client->getNick() + "!" + client->getUser() + "@localhost TOPIC " + channelName + " :" + channel->getTopic() + "\r\n";
+
+    sendToChannel(channel, msg,fd);
+}
+
+
+
+
+void Server::INVITE_cmd(int fd, const Command &cmd)
+{
+    Client      *sender;
+    Client      *target;
+    Channel     *channel;
+
+    std::string nick;
+    std::string channelName;
+    std::string inviteMsg;
+
+    sender = _clients[fd];
+
+    if (cmd.getParams().size() < 2)
+    {
+        sendReply(fd, ":irc.server 461 INVITE :Not enough parameters\r\n");
+        return;
+    }
+
+    nick = cmd.getParams()[0];
+    channelName = cmd.getParams()[1];
+
+    target = getClientByNickname(nick);
+
+    if (!target)
+    {
+        sendReply(fd, ":irc.server 401 " + nick + " :No such nick\r\n");
+        return;
+    }
+
+    if (_channels.find(channelName) == _channels.end())
+    {
+        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
+        return;
+    }
+
+    channel = _channels[channelName];
+
+    if (!channel->isMember(fd))
+    {
+        sendReply(fd, ":irc.server 442 " + channelName + " :You're not on that channel\r\n");
+        return;
+    }
+
+    if (!channel->isOperator(sender))
+    {
+        sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
+
+    if (channel->isMember(target->getFD()))
+    {
+        sendReply(fd, ":irc.server 443 " + nick + " " + channelName + " :is already on channel\r\n");
+        return;
+    }
+
+    channel->inviteClient(target);
+
+    sendReply(fd, ":irc.server 341 " + sender->getNick() + " " + nick + " " + channelName + "\r\n");
+
+    inviteMsg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost INVITE " + nick + " :" + channelName + "\r\n";
+
+    sendReply(target->getFD(), inviteMsg);
+}
+
+
+
+void Server::KICK_cmd(int fd, const Command &cmd)
+{
+    Client      *sender;
+    Client      *target;
+    Channel     *channel;
+
+    std::string channelName;
+    std::string targetNick;
+    std::string reason;
+    std::string kickMsg;
+
+    sender = _clients[fd];
+
+    if (cmd.getParams().size() < 2)
+    {
+        sendReply(fd,
+            ":irc.server 461 KICK :Not enough parameters\r\n");
+        return;
+    }
+
+    channelName = cmd.getParams()[0];
+    targetNick = cmd.getParams()[1];
+
+    if (_channels.find(channelName) == _channels.end())
+    {
+        sendReply(fd,
+            ":irc.server 403 "
+            + channelName
+            + " :No such channel\r\n");
+        return;
+    }
+
+    channel = _channels[channelName];
+
+    if (!channel->isMember(fd))
+    {
+        sendReply(fd,
+            ":irc.server 442 "
+            + channelName
+            + " :You're not on that channel\r\n");
+        return;
+    }
+
+    if (!channel->isOperator(sender))
+    {
+        sendReply(fd,
+            ":irc.server 482 "
+            + channelName
+            + " :You're not channel operator\r\n");
+        return;
+    }
+
+    target = getClientByNickname(targetNick);
+
+    if (!target)
+    {
+        sendReply(fd,
+            ":irc.server 401 "
+            + targetNick
+            + " :No such nick\r\n");
+        return;
+    }
+
+    if (!channel->isMember(target->getFD()))
+    {
+        sendReply(fd,
+            ":irc.server 441 "
+            + targetNick
+            + " "
+            + channelName
+            + " :They aren't on that channel\r\n");
+        return;
+    }
+
+    if (cmd.getParams().size() >= 3)
+        reason = cmd.getParams()[2];
+    else
+        reason = sender->getNick();
+
+    kickMsg =
+        ":" + sender->getNick()
+        + "!" + sender->getUser()
+        + "@localhost KICK "
+        + channelName
+        + " "
+        + targetNick
+        + " :"
+        + reason
+        + "\r\n";
+
+    sendToChannel(channel, kickMsg,fd);
+
+    channel->removeMember(target->getFD());
+    channel->removeOperator(target);
+
+    if (channel->getMembers().empty())
+    {
+        delete channel;
+        _channels.erase(channelName);
+    }
+}
+
+
+
+
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
     Client *client = _clients[fd];
@@ -369,13 +607,16 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     }
     else if (cmd.getCommand() == "PING")
     {
+        if (cmd.getParams().empty())
+            return;
         std::string pong = "PONG :" + cmd.getParams()[0] + "\r\n";
         send(fd, pong.c_str(), pong.length(), 0);
         std::cout << "Sent PONG :" << cmd.getParams()[0] << std::endl;
     }
     else if (cmd.getCommand() == "DEBUGCHANNEL")
     {
-        DebugChannelInfo(cmd.getParams()[0]);
+        if(!cmd.getParams().empty())
+            DebugChannelInfo(cmd.getParams()[0]);
     }
     else if (cmd.getCommand() == "PASS")
     {
@@ -401,8 +642,15 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     {
         CAP_cmd(fd, cmd);
     }
+    else if (cmd.getCommand() == "TOPIC")
+    {
+        TOPIC_cmd(fd, cmd);
+    }
+    else if (cmd.getCommand() == "INVITE")
+        INVITE_cmd(fd, cmd);
     else if (cmd.getCommand() == "PRIVMSG")
     {
+    //using nc client
     // PRIVMSG nickname :hello
     // PRIVMSG #channel :hello everyone
     PRIVMSG_cmd(fd, cmd);

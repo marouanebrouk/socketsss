@@ -72,6 +72,11 @@ class Server
     void JOIN_cmd(int fd, const Command &cmd);
     void PART_cmd(int fd, const Command &cmd);
     void CAP_cmd(int fd, const Command &cmd);
+    void TOPIC_cmd(int fd, const Command &cmd);
+    void INVITE_cmd(int fd, const Command &cmd);
+    void KICK_cmd(int fd, const Command &cmd);
+
+
     void PRIVMSG_cmd(int fd, const Command &cmd);
 
 
