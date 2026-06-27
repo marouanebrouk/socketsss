@@ -37,8 +37,8 @@ class Channel
 
     //for client invite
     void inviteClient(Client *client);
-    bool isInvited(Client *client);
-    void removeInvite(Client *client);
+    bool isInvited(int fd);
+    void removeInvite(int fd);
 
 
 

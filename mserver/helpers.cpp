@@ -82,6 +82,19 @@ void Server::sendToChannel(Channel *channel,const std::string &msg,int excludeFd
     }
 }
 
+void Server::sendToChannel(Channel *channel,const std::string &msg)
+{
+    std::map<int, Client *>::const_iterator it;
+
+    it = channel->getMembers().begin();
+
+    while (it != channel->getMembers().end())
+    {
+        sendReply(it->first, msg);
+        ++it;
+    }
+}
+
 
 
 bool Server::isAllowedBeforeRegister(const std::string &cmd)

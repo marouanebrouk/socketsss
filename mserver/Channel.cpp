@@ -85,3 +85,16 @@ void Channel::inviteClient(Client *client)
 {
     _invited.insert(client->getFD());
 }
+
+
+
+
+bool Channel::isInvited(int fd)
+{
+    return (_invited.find(fd) != _invited.end());
+}
+
+void Channel::removeInvite(int fd)
+{
+    _invited.erase(fd);
+}

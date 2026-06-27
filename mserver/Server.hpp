@@ -49,6 +49,9 @@ class Server
         void DebugClientInfo(int fd);
         void displayMessage(int fd, const Command &cmd);
         void DebugChannelInfo(const std::string &channelName);
+        
+    void sendNamesList(Client *client, Channel *channel);
+
 
 
     //commands
@@ -63,6 +66,7 @@ class Server
     bool isValidChannelName(const std::string &name);
     bool isValidNick(const std::string &nick);
     void sendToChannel(Channel *channel,const std::string &msg,int excludeFd);
+    void sendToChannel(Channel *channel,const std::string &msg);
     Client *getClientByNickname(const std::string &nick);
 
 

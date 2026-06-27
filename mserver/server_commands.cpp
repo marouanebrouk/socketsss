@@ -35,11 +35,38 @@ void Server::PASS_cmd(int fd, const Command &cmd)
 // quit command should remove the client from all channels and then clear the client data and close the connection
 
 
+void Server::sendNamesList(Client *client, Channel *channel)
+{
+    std::map<int, Client *>::const_iterator it;
+    std::string names;
+    std::string reply;
+
+    it = channel->getMembers().begin();
+    while (it != channel->getMembers().end())
+    {
+        if (channel->isOperator(it->second))
+            names += "@";
+
+        names += it->second->getNick();
+
+        ++it;
+        if (it != channel->getMembers().end())
+            names += " ";
+    }
+
+    reply = ":irc.server 353 " + client->getNick() + " = " + channel->getName() + " :" + names + "\r\n";
+
+    sendReply(client->getFD(), reply);
+
+    reply = ":irc.server 366 " + client->getNick() + " " + channel->getName() + " :End of /NAMES list.\r\n";
+
+    sendReply(client->getFD(), reply);
+}
 
 void Server::JOIN_cmd(int fd, const Command &cmd)
 {
-    Client *client;
-    Channel *channel;
+    Client      *client;
+    Channel     *channel;
     std::string channelName;
     std::string joinMsg;
 
@@ -47,7 +74,8 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd, ":irc.server 461 JOIN :Not enough parameters\r\n");
+        sendReply(fd,
+            ":irc.server 461 JOIN :Not enough parameters\r\n");
         return;
     }
 
@@ -55,7 +83,10 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
 
     if (!isValidChannelName(channelName))
     {
-        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
+        sendReply(fd,
+            ":irc.server 403 "
+            + channelName
+            + " :No such channel\r\n");
         return;
     }
 
@@ -72,10 +103,44 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
     if (channel->getMembers().size() == 1)
         channel->addOperator(client);
 
-    joinMsg = ":" + client->getNick() + "!" + client->getUser() + "@localhost JOIN " + channelName + "\r\n";
+    joinMsg = ":"
+        + client->getNick()
+        + "!"
+        + client->getUser()
+        + "@localhost JOIN "
+        + channelName
+        + "\r\n";
 
-    sendToChannel(channel, joinMsg, fd);
-    std::cout << "JOIN executed for fd=" << fd << " to channel " << channelName << std::endl;
+    sendToChannel(channel, joinMsg);
+
+    if (channel->getTopic().empty())
+    {
+        sendReply(fd,
+            ":irc.server 331 "
+            + client->getNick()
+            + " "
+            + channelName
+            + " :No topic is set\r\n");
+    }
+    else
+    {
+        sendReply(fd,
+            ":irc.server 332 "
+            + client->getNick()
+            + " "
+            + channelName
+            + " :"
+            + channel->getTopic()
+            + "\r\n");
+    }
+
+    sendNamesList(client, channel);
+
+    std::cout << "JOIN executed for fd="
+              << fd
+              << " to channel "
+              << channelName
+              << std::endl;
 }
 
 
@@ -495,8 +560,7 @@ void Server::KICK_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 2)
     {
-        sendReply(fd,
-            ":irc.server 461 KICK :Not enough parameters\r\n");
+        sendReply(fd, ":irc.server 461 KICK :Not enough parameters\r\n");
         return;
     }
 
@@ -505,10 +569,7 @@ void Server::KICK_cmd(int fd, const Command &cmd)
 
     if (_channels.find(channelName) == _channels.end())
     {
-        sendReply(fd,
-            ":irc.server 403 "
-            + channelName
-            + " :No such channel\r\n");
+        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
         return;
     }
 
@@ -516,19 +577,13 @@ void Server::KICK_cmd(int fd, const Command &cmd)
 
     if (!channel->isMember(fd))
     {
-        sendReply(fd,
-            ":irc.server 442 "
-            + channelName
-            + " :You're not on that channel\r\n");
+        sendReply(fd, ":irc.server 442 " + channelName + " :You're not on that channel\r\n");
         return;
     }
 
     if (!channel->isOperator(sender))
     {
-        sendReply(fd,
-            ":irc.server 482 "
-            + channelName
-            + " :You're not channel operator\r\n");
+        sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
         return;
     }
 
@@ -536,21 +591,13 @@ void Server::KICK_cmd(int fd, const Command &cmd)
 
     if (!target)
     {
-        sendReply(fd,
-            ":irc.server 401 "
-            + targetNick
-            + " :No such nick\r\n");
+        sendReply(fd, ":irc.server 401 " + targetNick + " :No such nick\r\n");
         return;
     }
 
     if (!channel->isMember(target->getFD()))
     {
-        sendReply(fd,
-            ":irc.server 441 "
-            + targetNick
-            + " "
-            + channelName
-            + " :They aren't on that channel\r\n");
+        sendReply(fd, ":irc.server 441 " + targetNick + " " + channelName + " :They aren't on that channel\r\n");
         return;
     }
 
@@ -559,16 +606,7 @@ void Server::KICK_cmd(int fd, const Command &cmd)
     else
         reason = sender->getNick();
 
-    kickMsg =
-        ":" + sender->getNick()
-        + "!" + sender->getUser()
-        + "@localhost KICK "
-        + channelName
-        + " "
-        + targetNick
-        + " :"
-        + reason
-        + "\r\n";
+    kickMsg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost KICK " + channelName + " " + targetNick + " :" + reason + "\r\n";
 
     sendToChannel(channel, kickMsg,fd);
 
