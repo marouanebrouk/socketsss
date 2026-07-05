@@ -18,12 +18,12 @@ class vect2 {
     ~vect2();
 
     
-    int& operator[](int i);
     int operator[](int i) const;
+    int& operator[](int i);
 
     vect2 operator+(int i);
-    vect2 operator*(int i);
     vect2 operator+(const vect2& vec);
+    vect2 operator*(int i);
     vect2 operator*(const vect2& vec);
 
     vect2 operator++(int);
@@ -35,8 +35,8 @@ class vect2 {
     bool operator!=(const vect2& vec);
 
     vect2& operator+=(int i);
-    vect2& operator-=(int i);
     vect2& operator+=(const vect2& vec);
+    vect2& operator-=(int i);
     vect2& operator-=(const vect2& vec);
 
     void print(std::ostream& os) const;
