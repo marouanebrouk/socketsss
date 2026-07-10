@@ -22,6 +22,37 @@ std::string bigint::addStrings(const std::string &a,
     return (removeLeadingZeros(res));
 }
 
+
+
+// function optimisation
+
+/*
+std::string bigint::addstrings(const std::string &s1, const std::string &s2)
+{
+    std::string result;
+    int i = s1.size() - 1;
+    int j = s2.size() - 1;
+    int carry = 0;
+
+    while (i >= 0 || j >= 0 || carry)
+    {
+        int sum = carry;
+
+        if (i >= 0)
+            sum += s1[i--] - '0';
+        if (j >= 0)
+            sum += s2[j--] - '0';
+
+        result.push_back(sum % 10 + '0');
+        carry = sum / 10;
+    }
+    std::reverse(result.begin(), result.end());
+    return (rmlz(result));
+}
+
+
+*/
+
 #include <sstream>
 bigint::bigint(unsigned int n)
 {
