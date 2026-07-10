@@ -13,6 +13,7 @@ SearchableTreeBag& SearchableTreeBag::operator=(const SearchableTreeBag& other) 
     return *this;
 }
 
+
 bool SearchableTreeBag::has(int value) const {
     Node* current = root;
     while (current) {
@@ -26,3 +27,4 @@ bool SearchableTreeBag::has(int value) const {
     }
     return false;
 }
+
