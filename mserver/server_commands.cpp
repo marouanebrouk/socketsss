@@ -74,8 +74,7 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd,
-            ":irc.server 461 JOIN :Not enough parameters\r\n");
+        sendReply(fd, ":irc.server 461 JOIN :Not enough parameters\r\n");
         return;
     }
 
@@ -83,10 +82,7 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
 
     if (!isValidChannelName(channelName))
     {
-        sendReply(fd,
-            ":irc.server 403 "
-            + channelName
-            + " :No such channel\r\n");
+        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
         return;
     }
 
@@ -103,57 +99,35 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
     {
         if (!channel->isInvited(client->getFD()))
         {
-            sendReply(fd,
-                ":irc.server 473 "
-                + channelName
-                + " :Cannot join channel (+i)\r\n");
+            sendReply(fd, ":irc.server 473 " + channelName + " :Cannot join channel (+i)\r\n");
             return;
         }
         channel->removeInvite(client->getFD());
+    }
+    
+    if (channel->hasKey())
+    { 
+        if (cmd.getParams().size() < 2 || cmd.getParams()[1] != channel->getKey()) 
+        { 
+            sendReply(fd, ":irc.server 475 " + channelName + " :Cannot join channel (+k)\r\n");
+             return; 
+        } 
     }
     channel->addMember(client);
 
     if (channel->getMembers().size() == 1)
         channel->addOperator(client);
 
-    joinMsg = ":"
-        + client->getNick()
-        + "!"
-        + client->getUser()
-        + "@localhost JOIN "
-        + channelName
-        + "\r\n";
+    joinMsg = ":" + client->getNick() + "!" + client->getUser() + "@localhost JOIN " + channelName + "\r\n";
 
     sendToChannel(channel, joinMsg);
 
     if (channel->getTopic().empty())
-    {
-        sendReply(fd,
-            ":irc.server 331 "
-            + client->getNick()
-            + " "
-            + channelName
-            + " :No topic is set\r\n");
-    }
+        sendReply(fd, ":irc.server 331 " + client->getNick() + " " + channelName + " :No topic is set\r\n");
     else
-    {
-        sendReply(fd,
-            ":irc.server 332 "
-            + client->getNick()
-            + " "
-            + channelName
-            + " :"
-            + channel->getTopic()
-            + "\r\n");
-    }
-
+        sendReply(fd, ":irc.server 332 " + client->getNick() + " " + channelName + " :" + channel->getTopic() + "\r\n");
     sendNamesList(client, channel);
-
-    std::cout << "JOIN executed for fd="
-              << fd
-              << " to channel "
-              << channelName
-              << std::endl;
+    std::cout << "JOIN executed for fd=" << fd << " to channel " << channelName << std::endl;
 }
 
 
@@ -231,6 +205,10 @@ void Server::DebugChannelInfo(const std::string &channelName)
     if (it != _channels.end())
     {
         Channel *channel = it->second;
+        std::cout << "hasKey: " << channel->hasKey() << std::endl;
+        std::cout << "hasLimit: " << channel->hasLimit() << std::endl;
+        std::cout << "isInviteOnly: " << channel->isInviteOnly() << std::endl;
+        std::cout << "isTopicRestricted: " << channel->isTopicRestricted() << std::endl;
         std::cout << "Channel: " << channelName << std::endl;
         std::cout << "Members: ";
         for (std::map<int, Client *>::const_iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++)
@@ -476,17 +454,16 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
     /*
     ** SET TOPIC
     */
-    if (!channel->isOperator(client))
-    {
+    if (channel->isTopicRestricted() && !channel->isOperator(client))
+    { 
         sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
-        return;
+        return; 
     }
-
     channel->setTopic(cmd.getParams()[1]);
 
     msg = ":" + client->getNick() + "!" + client->getUser() + "@localhost TOPIC " + channelName + " :" + channel->getTopic() + "\r\n";
 
-    sendToChannel(channel, msg,fd);
+    sendToChannel(channel, msg);
 }
 
 
@@ -634,6 +611,64 @@ void Server::KICK_cmd(int fd, const Command &cmd)
 }
 
 
+void Server::MODE_cmd(int fd, const Command &cmd)
+{
+    Client      *sender;
+    Channel     *channel;
+    std::string channelName;
+    std::string mode;
+
+    
+    if (cmd.getParams().size() < 2)
+    {
+        sendReply(fd, ":irc.server 461 MODE :Not enough parameters\r\n");
+        return;
+    }
+    sender = _clients[fd];
+    channelName = cmd.getParams()[0];
+    mode = cmd.getParams()[1];
+
+    if (_channels.find(channelName) == _channels.end())
+    {
+        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
+        return;
+    }
+    channel = _channels[channelName];
+    if (!channel->isMember(fd))
+    {
+        sendReply(fd, ":irc.server 442 " + channelName + " :You're not on that channel\r\n");
+        return;
+    }
+    if (!channel->isOperator(sender))
+    {
+        sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
+
+
+    if(mode == "+k")
+    {
+        if (cmd.getParams().size() < 3)
+        {
+            sendReply(fd, ":irc.server 461 MODE :Not enough parameters\r\n");
+            return;
+        }
+        channel->setKey(cmd.getParams()[2]);
+    }
+    else if(mode == "-k")
+        channel->removeKey();
+    if (mode == "+t") 
+        channel->setTopicRestricted(true); 
+    else if (mode == "-t") 
+        channel->setTopicRestricted(false);
+    else if (mode == "+i")
+        channel->setInviteOnly(true);
+    else if (mode == "-i")
+        channel->setInviteOnly(false);
+    std::string msg;
+    msg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost MODE " + channelName + " " + mode + "\r\n"; 
+    sendToChannel(channel, msg);
+};
 
 
 void Server::command_dispatcher(int fd, const Command &cmd)
@@ -709,6 +744,10 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     else if (cmd.getCommand() == "KICK" || cmd.getCommand() == "kick")
     {
         KICK_cmd(fd, cmd);
+    }
+    else if (cmd.getCommand() == "MODE" || cmd.getCommand() == "mode")
+    {
+        MODE_cmd(fd, cmd);
     }
     else
     {

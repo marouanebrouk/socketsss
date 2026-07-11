@@ -13,7 +13,10 @@ class Channel
         
         //for mode +i and invite commands
         bool _inviteOnly;
+        bool _topicRestricted;
+        std::string _key;
         std::set<int> _invited;
+        size_t _userLimit;
     public :
         Channel();
         Channel(const std::string& name);
@@ -35,11 +38,24 @@ class Channel
         void removeOperator(Client *client);
         const std::set<int>& getOperators() const;
 
-    //for client invite
-    void inviteClient(Client *client);
-    bool isInvited(int fd);
-    void removeInvite(int fd);
-    bool isInviteOnly() const;
+        //for client invite
+        void inviteClient(Client *client);
+        bool isInvited(int fd);
+        void removeInvite(int fd);
+        bool isInviteOnly() const;
+
+        //for mode commands
+        void setInviteOnly(bool);
+        bool isTopicRestricted() const;
+        void setTopicRestricted(bool);
+        bool hasKey() const;
+        const std::string &getKey() const;
+        void setKey(const std::string &);
+        void removeKey();
+        bool hasLimit() const;
+        size_t getUserLimit() const;
+        void setUserLimit(size_t);
+        void removeUserLimit();
 
 
 

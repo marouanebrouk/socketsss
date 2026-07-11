@@ -27,7 +27,7 @@ TOPIC #general :Welcome everybody
 to change topic.
 
 Requirements:
-TOPIC #chan -> display topicq
+TOPIC #chan -> display topicq   
 TOPIC #chan :new topic -> change topic
 only operators can modify topic
 channel must exist

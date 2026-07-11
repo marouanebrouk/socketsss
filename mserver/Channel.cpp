@@ -1,7 +1,7 @@
 #include "Channel.hpp"
 
 
-    Channel::Channel() : name(""), topic("")
+    Channel::Channel() : name(""), topic("") , _inviteOnly(false), _topicRestricted(false), _key(""), _userLimit(0)
     {
         _members.clear();
     }
@@ -103,4 +103,62 @@ void Channel::removeInvite(int fd)
 bool Channel::isInviteOnly() const
 {
     return _inviteOnly;
+}
+
+
+
+
+
+//for mode commands
+void Channel::setInviteOnly(bool inviteOnly)
+{
+    _inviteOnly = inviteOnly;
+}
+
+bool Channel::isTopicRestricted() const
+{
+    return _topicRestricted;
+}
+
+void Channel::setTopicRestricted(bool topicRestricted)
+{
+    _topicRestricted = topicRestricted;
+}
+
+bool Channel::hasKey() const
+{
+    return !_key.empty();
+}
+
+const std::string &Channel::getKey() const
+{
+    return _key;
+}
+
+void Channel::setKey(const std::string &key)
+{
+    _key = key;
+}
+
+void Channel::removeKey()
+{
+    _key.clear();
+}
+
+bool Channel::hasLimit() const
+{
+    return _userLimit > 0;
+}
+
+size_t Channel::getUserLimit() const
+{
+    return _userLimit;
+}
+void Channel::setUserLimit(size_t limit)
+{
+    _userLimit = limit;
+}
+void Channel::removeUserLimit()
+{
+    _userLimit = 0;
 }

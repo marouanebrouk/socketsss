@@ -82,6 +82,7 @@ class Server
 
 
     void PRIVMSG_cmd(int fd, const Command &cmd);
+    void MODE_cmd(int fd, const Command &cmd);
 
 
 
