@@ -98,3 +98,9 @@ void Channel::removeInvite(int fd)
 {
     _invited.erase(fd);
 }
+
+
+bool Channel::isInviteOnly() const
+{
+    return _inviteOnly;
+}

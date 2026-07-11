@@ -27,7 +27,7 @@ TOPIC #general :Welcome everybody
 to change topic.
 
 Requirements:
-TOPIC #chan -> display topic
+TOPIC #chan -> display topicq
 TOPIC #chan :new topic -> change topic
 only operators can modify topic
 channel must exist
@@ -45,3 +45,8 @@ KICK:
 
 KICK #channel nick
 KICK #channel nick :reason
+
+
+
+
+// invite doesnt invite specified users to channels. (it prints but not working)

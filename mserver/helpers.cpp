@@ -65,7 +65,7 @@ bool Server::nickExists(const std::string &nick)
 
 void Server::sendReply(int fd, const std::string &msg)
 {
-    send(fd, msg.c_str(), msg.size(), 0);
+    send(fd, msg.c_str(), msg.size(), 0); // MSG_NOSIGNAL
 }
 
 void Server::sendToChannel(Channel *channel,const std::string &msg,int excludeFd) //: exclude fd as argument
@@ -100,12 +100,13 @@ void Server::sendToChannel(Channel *channel,const std::string &msg)
 bool Server::isAllowedBeforeRegister(const std::string &cmd)
 {
     return (
-        cmd == "CAP" ||
-        cmd == "PASS" ||
-        cmd == "NICK" ||
-        cmd == "USER" ||
-        cmd == "QUIT" ||
-        cmd == "PING" ||
-        cmd == "INFO"
+        cmd == "CAP" || cmd == "cap" ||
+        cmd == "PASS" || cmd == "pass" ||
+        cmd == "NICK" || cmd == "nick" ||
+        cmd == "USER" || cmd == "user" ||
+        cmd == "QUIT" || cmd == "quit" ||
+        cmd == "PING" || cmd == "ping" ||
+        cmd == "INFO" || cmd == "info" ||
+        cmd == "DEBUGCHANNEL" || cmd == "debugchannel"
     );
 }

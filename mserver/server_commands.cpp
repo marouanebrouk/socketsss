@@ -98,6 +98,19 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
     if (channel->isMember(fd))
         return;
 
+    /* Invite-only channel */
+    if (channel->isInviteOnly())
+    {
+        if (!channel->isInvited(client->getFD()))
+        {
+            sendReply(fd,
+                ":irc.server 473 "
+                + channelName
+                + " :Cannot join channel (+i)\r\n");
+            return;
+        }
+        channel->removeInvite(client->getFD());
+    }
     channel->addMember(client);
 
     if (channel->getMembers().size() == 1)
@@ -639,11 +652,11 @@ void Server::command_dispatcher(int fd, const Command &cmd)
         }
     }
 
-    if (cmd.getCommand() == "INFO")
+    if (cmd.getCommand() == "INFO" || cmd.getCommand() == "info")
     {
         DebugClientInfo(fd);
     }
-    else if (cmd.getCommand() == "PING")
+    else if (cmd.getCommand() == "PING" || cmd.getCommand() == "ping")
     {
         if (cmd.getParams().empty())
             return;
@@ -651,48 +664,55 @@ void Server::command_dispatcher(int fd, const Command &cmd)
         send(fd, pong.c_str(), pong.length(), 0);
         std::cout << "Sent PONG :" << cmd.getParams()[0] << std::endl;
     }
-    else if (cmd.getCommand() == "DEBUGCHANNEL")
+    else if (cmd.getCommand() == "DEBUGCHANNEL" || cmd.getCommand() == "debugchannel")
     {
         if(!cmd.getParams().empty())
             DebugChannelInfo(cmd.getParams()[0]);
     }
-    else if (cmd.getCommand() == "PASS")
+    else if (cmd.getCommand() == "PASS" || cmd.getCommand() == "pass")
     {
         PASS_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "NICK")
+    else if (cmd.getCommand() == "NICK" || cmd.getCommand() == "nick")
     {
         NICK_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "USER")
+    else if (cmd.getCommand() == "USER" || cmd.getCommand() == "user")
     {
         USER_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "JOIN")
+    else if (cmd.getCommand() == "JOIN" || cmd.getCommand() == "join")
     {
         JOIN_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "PART")
-    {
-        PART_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "CAP")
+    // else if (cmd.getCommand() == "PART" || cmd.getCommand() == "part")
+    // {
+    //     PART_cmd(fd, cmd);
+    // }
+    else if (cmd.getCommand() == "CAP" || cmd.getCommand() == "cap")
     {
         CAP_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "TOPIC")
+    else if (cmd.getCommand() == "TOPIC" || cmd.getCommand() == "topic")
     {
         TOPIC_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "INVITE")
+    else if (cmd.getCommand() == "INVITE" || cmd.getCommand() == "invite")
         INVITE_cmd(fd, cmd);
-    else if (cmd.getCommand() == "PRIVMSG")
+    else if (cmd.getCommand() == "PRIVMSG" || cmd.getCommand() == "privmsg")
     {
     //using nc client
     // PRIVMSG nickname :hello
     // PRIVMSG #channel :hello everyone
     PRIVMSG_cmd(fd, cmd);
     }
+    else if (cmd.getCommand() == "KICK" || cmd.getCommand() == "kick")
+    {
+        KICK_cmd(fd, cmd);
+    }
     else
+    {
         std::cout << "Unknown command '" << cmd.getCommand() << "' from fd=" << fd << std::endl;
+        sendReply(fd, ":irc.server 421 " + cmd.getCommand() + " :Unknown command\r\n");
+    }
 }

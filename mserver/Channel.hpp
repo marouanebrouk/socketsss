@@ -39,6 +39,7 @@ class Channel
     void inviteClient(Client *client);
     bool isInvited(int fd);
     void removeInvite(int fd);
+    bool isInviteOnly() const;
 
 
 
