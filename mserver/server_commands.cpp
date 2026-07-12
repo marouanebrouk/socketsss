@@ -113,6 +113,12 @@ void Server::JOIN_cmd(int fd, const Command &cmd)
              return; 
         } 
     }
+
+    if (channel->hasLimit() && channel->getMembers().size() >= channel->getUserLimit())
+    { 
+        sendReply(fd, ":irc.server 471 " + channelName + " :Cannot join channel (+l)\r\n");
+        return; 
+    }
     channel->addMember(client);
 
     if (channel->getMembers().size() == 1)
@@ -645,8 +651,49 @@ void Server::MODE_cmd(int fd, const Command &cmd)
         return;
     }
 
-
-    if(mode == "+k")
+    if (mode == "+l")
+    {
+        size_t limit;
+        if (cmd.getParams().size() < 3)
+        {
+            sendReply(fd, ":irc.server 461 MODE :Not enough parameters\r\n");
+            return;
+        }
+        limit = std::atoi(cmd.getParams()[2].c_str());
+        if (limit == 0)
+        {
+            sendReply(fd, ":irc.server 461 MODE :Invalid limit\r\n");
+            return;
+        }
+        channel->setUserLimit(limit);
+    }
+    else if (mode == "-l")
+        channel->removeUserLimit();
+    else if (mode == "+o" || mode == "-o")
+    {
+        Client *target;
+        if (cmd.getParams().size() < 3)
+        {
+            sendReply(fd, ":irc.server 461 MODE :Not enough parameters\r\n");
+            return;
+        }
+        target = getClientByNickname(cmd.getParams()[2]);
+        if (!target)
+        {
+            sendReply(fd, ":irc.server 401 " + cmd.getParams()[2] + " :No such nick\r\n");
+            return;
+        }
+        if (!channel->isMember(target->getFD()))
+        {
+            sendReply(fd, ":irc.server 441 " + target->getNick() + " " + channelName + " :They aren't on that channel\r\n");
+            return;
+        }
+        if (mode == "+o")
+            channel->addOperator(target);
+        else
+            channel->removeOperator(target);
+    }
+    else if(mode == "+k")
     {
         if (cmd.getParams().size() < 3)
         {
@@ -657,16 +704,20 @@ void Server::MODE_cmd(int fd, const Command &cmd)
     }
     else if(mode == "-k")
         channel->removeKey();
-    if (mode == "+t") 
-        channel->setTopicRestricted(true); 
-    else if (mode == "-t") 
+    else if (mode == "+t")
+        channel->setTopicRestricted(true);
+    else if (mode == "-t")
         channel->setTopicRestricted(false);
     else if (mode == "+i")
         channel->setInviteOnly(true);
     else if (mode == "-i")
         channel->setInviteOnly(false);
+
     std::string msg;
-    msg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost MODE " + channelName + " " + mode + "\r\n"; 
+    msg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost MODE " + channelName + " " + mode;
+    if ((mode == "+o" || mode == "-o") && cmd.getParams().size() >= 3)
+        msg += " " + cmd.getParams()[2];
+    msg += "\r\n";
     sendToChannel(channel, msg);
 };
 
