@@ -660,7 +660,7 @@ void Server::MODE_cmd(int fd, const Command &cmd)
             return;
         }
         limit = std::atoi(cmd.getParams()[2].c_str());
-        if (limit == 0)
+        if (limit <= 0)
         {
             sendReply(fd, ":irc.server 461 MODE :Invalid limit\r\n");
             return;
@@ -712,6 +712,11 @@ void Server::MODE_cmd(int fd, const Command &cmd)
         channel->setInviteOnly(true);
     else if (mode == "-i")
         channel->setInviteOnly(false);
+    else
+    {
+        sendReply(fd, ":irc.server 472 " + mode + " :is unknown mode char to me for " + channelName + "\r\n");
+        return;
+    }
 
     std::string msg;
     msg = ":" + sender->getNick() + "!" + sender->getUser() + "@localhost MODE " + channelName + " " + mode;
@@ -792,7 +797,7 @@ void Server::command_dispatcher(int fd, const Command &cmd)
     // PRIVMSG #channel :hello everyone
     PRIVMSG_cmd(fd, cmd);
     }
-    else if (cmd.getCommand() == "KICK" || cmd.getCommand() == "kick")
+    else if ((cmd.getCommand())== "KICK" || cmd.getCommand() == "kick")
     {
         KICK_cmd(fd, cmd);
     }

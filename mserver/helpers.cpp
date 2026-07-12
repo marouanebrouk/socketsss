@@ -41,11 +41,11 @@ bool Server::isValidChannelName(const std::string &name)
 {
     if (name.empty())
         return (false);
-
     if (name[0] != '#')
         return (false);
-
-    return (true);
+    if (name.length() > 2)
+        return (true);
+    return (false);
 }
 
 bool Server::nickExists(const std::string &nick)
