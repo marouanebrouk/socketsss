@@ -69,15 +69,6 @@ Command* Server::parsecmd(std::string cmd)
 
 void Server::displayMessage(int fd, const Command &cmd)
 {
-    // Parser is separated from execution; keep this as the dispatch point.
-    // For now, just log what we parsed.
-
-
-
-    //[IRC] fd=4 cmd='DEBUG' <<<<<< you want this
-
-    //do this \/
-
     std::cout << "[IRC] fd=" << fd;
     if (!cmd.getPrefix().empty())
         std::cout << " prefix='" << cmd.getPrefix() << "'";
@@ -87,9 +78,6 @@ void Server::displayMessage(int fd, const Command &cmd)
         std::cout << " param[" << i << "]='" << params[i] << "'";
     std::cout << " trailing is :"<< cmd._gettrailing();
     std::cout << std::endl;
-
-    // Here you can add code to handle the command, e.g., by calling a method
-    // on the Client object associated with the fd.
 }
 void Server::handleClient(int fd)
 {

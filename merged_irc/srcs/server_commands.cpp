@@ -194,9 +194,6 @@ void Server::command_dispatcher(int fd, const Command &cmd)
         INVITE_cmd(fd, cmd);
     else if (cmd.getCommand() == "PRIVMSG" || cmd.getCommand() == "privmsg")
     {
-    //using nc client
-    // PRIVMSG nickname :hello
-    // PRIVMSG #channel :hello everyone
     PRIVMSG_cmd(fd, cmd);
     }
     else if ((cmd.getCommand())== "KICK" || cmd.getCommand() == "kick")
