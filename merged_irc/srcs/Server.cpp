@@ -85,7 +85,7 @@ void Server::displayMessage(int fd, const Command &cmd)
     const std::vector<std::string> &params = cmd.getParams();
     for (size_t i = 0; i < params.size(); ++i)
         std::cout << " param[" << i << "]='" << params[i] << "'";
-    std::cout << " trailing is :"<< cmd._gettrailing() << std::endl;
+    std::cout << " trailing is :"<< cmd._gettrailing();
     std::cout << std::endl;
 
     // Here you can add code to handle the command, e.g., by calling a method
@@ -102,8 +102,7 @@ void Server::handleClient(int fd)
         {
                 Client* user = _clients[fd];
                 user->appendBuffer(buff);
-                if(user->bufferRef().find("\r\n") == std::string::npos) return ;
-                else
+                while(user->bufferRef().find("\r\n") != std::string::npos)
                 {
                         size_t pos = user->bufferRef().find("\r\n");
                         std::string cmd = user->bufferRef().substr(0,pos);
