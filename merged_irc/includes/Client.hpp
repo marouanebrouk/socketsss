@@ -34,7 +34,7 @@ class Client
         bool        _isAuth;
         bool        _isRegistered;
     public:
-        Client(){};
+        Client();
         Client(int fd, const std::string &ip);
         int getFD();
         std::string & getIP();

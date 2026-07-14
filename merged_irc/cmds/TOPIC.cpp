@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
 
 void Server::TOPIC_cmd(int fd, const Command &cmd)
 {
@@ -11,7 +12,7 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd,":irc.server 461 TOPIC :Not enough parameters\r\n");
+        sendReply(fd,":irc.server " + std::string(ERR_NEEDMOREPARAMS) + " TOPIC :Not enough parameters\r\n");
         return;
     }
 
@@ -19,7 +20,7 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
 
     if (_channels.find(channelName) == _channels.end())
     {
-        sendReply(fd,":irc.server 403 " + channelName + " :No such channel\r\n");
+        sendReply(fd,":irc.server " + std::string(ERR_NOSUCHCHANNEL) + " " + channelName + " :No such channel\r\n");
         return;
     }
 
@@ -27,7 +28,7 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
 
     if (!channel->isMember(fd))
     {
-        sendReply(fd,":irc.server 442 " + channelName + " :You're not on that channel\r\n");
+        sendReply(fd,":irc.server " + std::string(ERR_NOTONCHANNEL) + " " + channelName + " :You're not on that channel\r\n");
         return;
     }
 
@@ -38,11 +39,11 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
     {
         if (channel->getTopic().empty())
         {
-            sendReply(fd,":irc.server 331 "+ client->getNick()+ " " + channelName + " :No topic is set\r\n");
+            sendReply(fd,":irc.server " + std::string(RPL_NOTOPIC) + " "+ client->getNick()+ " " + channelName + " :No topic is set\r\n");
         }
         else
         {
-            sendReply(fd,":irc.server 332 "+ client->getNick()+ " "+ channelName+ " :" + channel->getTopic() + "\r\n");
+            sendReply(fd,":irc.server " + std::string(RPL_TOPIC) + " "+ client->getNick()+ " "+ channelName+ " :" + channel->getTopic() + "\r\n");
         }
         return;
     }
@@ -52,7 +53,7 @@ void Server::TOPIC_cmd(int fd, const Command &cmd)
     */
     if (channel->isTopicRestricted() && !channel->isOperator(client))
     { 
-        sendReply(fd, ":irc.server 482 " + channelName + " :You're not channel operator\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_CHANOPRIVSNEEDED) + " " + channelName + " :You're not channel operator\r\n");
         return; 
     }
     channel->setTopic(cmd.getParams()[1]);

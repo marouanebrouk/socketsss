@@ -1,6 +1,8 @@
 #include "../includes/Client.hpp"
 
-Client::Client(int fd, const std::string &ip) : client_fd(fd), ip_addr(ip) {}
+Client::Client() : client_fd(-1), ip_addr(""), _recvBuffer(""), _nickname(""), _realname(""), _username(""), _hostname(""), _server(""), _isAuth(false), _isRegistered(false) {}
+
+Client::Client(int fd, const std::string &ip) : client_fd(fd), ip_addr(ip), _recvBuffer(""), _nickname(""), _realname(""), _username(""), _hostname(""), _server(""), _isAuth(false), _isRegistered(false) {}
 
         int Client::getFD()
         {

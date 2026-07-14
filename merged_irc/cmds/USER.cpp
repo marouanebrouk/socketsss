@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
 
 void Server::USER_cmd(int fd, const Command &cmd)
 {
@@ -8,13 +9,13 @@ void Server::USER_cmd(int fd, const Command &cmd)
 
     if (client->isRegistered())
     {
-        sendReply(fd, ":irc.server 462 :You may not reregister\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_ALREADYREGISTRED) + " :You may not reregister\r\n");
         return;
     }
 
     if (cmd.getParams().size() < 4)
     {
-        sendReply(fd, ":irc.server 461 USER :Not enough parameters\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NEEDMOREPARAMS) + " USER :Not enough parameters\r\n");
         return;
     }
 

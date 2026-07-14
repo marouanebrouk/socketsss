@@ -37,7 +37,9 @@ class Server
         Command *_cmds;
         static bool F_signal;
         
-
+        typedef void (Server::*CommandHandler)(int, const Command&);
+        std::map<std::string, CommandHandler> _commandTable;
+        void initCommandTable();
         
     private:
         Server();
@@ -54,6 +56,7 @@ class Server
 
     public:
         Server(int port , std::string pass);
+        ~Server();
         void StartServer();
 
         void displayMessage(int fd, const Command &cmd);
@@ -86,6 +89,9 @@ class Server
         void KICK_cmd(int fd, const Command &cmd);
         void PRIVMSG_cmd(int fd, const Command &cmd);
         void MODE_cmd(int fd, const Command &cmd);
+        void PING_cmd(int fd, const Command &cmd);
+        void INFO_cmd(int fd, const Command &cmd);
+        void DEBUGCHANNEL_cmd(int fd, const Command &cmd);
 
 };
 

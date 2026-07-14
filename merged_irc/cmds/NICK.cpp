@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
 
 void Server::NICK_cmd(int fd, const Command &cmd)
 {
@@ -11,19 +12,19 @@ void Server::NICK_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd, ":irc.server 431 :No nickname given\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NONICKNAMEGIVEN) + " :No nickname given\r\n");
         return;
     }
     newNick = cmd.getParams()[0];
     if (!isValidNick(newNick))
     {
-        sendReply(fd, ":irc.server 432 " + newNick + " :Erroneous nickname\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_ERRONEUSNICKNAME) + " " + newNick + " :Erroneous nickname\r\n");
         return;
     }
 
     if (nickExists(newNick) && client->getNick() != newNick)
     {
-        sendReply(fd, ":irc.server 433 " + newNick + " :Nickname already in use\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NICKNAMEINUSE) + " " + newNick + " :Nickname already in use\r\n");
         return;
     }
     oldNick = client->getNick();

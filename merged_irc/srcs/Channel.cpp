@@ -4,11 +4,15 @@
     Channel::Channel() : name(""), topic("") , _inviteOnly(false), _topicRestricted(false), _key(""), _userLimit(0)
     {
         _members.clear();
+        _operators.clear();
+        _invited.clear();
     }
 
-    Channel::Channel(const std::string& name) : name(name), topic("")
+    Channel::Channel(const std::string& name) : name(name), topic(""), _inviteOnly(false), _topicRestricted(false), _key(""), _userLimit(0)
     {
         _members.clear();
+        _operators.clear();
+        _invited.clear();
     }
 
     Channel::~Channel()

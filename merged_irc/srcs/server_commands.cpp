@@ -1,4 +1,6 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
+#include <cctype>
 
 
 
@@ -25,11 +27,11 @@ void Server::sendNamesList(Client *client, Channel *channel)
             names += " ";
     }
 
-    reply = ":irc.server 353 " + client->getNick() + " = " + channel->getName() + " :" + names + "\r\n";
+    reply = ":irc.server " + std::string(RPL_NAMREPLY) + " " + client->getNick() + " = " + channel->getName() + " :" + names + "\r\n";
 
     sendReply(client->getFD(), reply);
 
-    reply = ":irc.server 366 " + client->getNick() + " " + channel->getName() + " :End of /NAMES list.\r\n";
+    reply = ":irc.server " + std::string(RPL_ENDOFNAMES) + " " + client->getNick() + " " + channel->getName() + " :End of /NAMES list.\r\n";
 
     sendReply(client->getFD(), reply);
 }
@@ -98,7 +100,7 @@ bool Server::registerClient(Client *client)
     if (!canRegister(client))
         return false;
     client->setRegistered(true);
-    welcome = ":irc.server 001 " + client->getNick() + " :Welcome to the IRC server\r\n";
+    welcome = ":irc.server " + std::string(RPL_WELCOME) + " " + client->getNick() + " :Welcome to the IRC server\r\n";
     sendReply(client->getFD(), welcome);
     std::cout << welcome;
     return true;
@@ -129,6 +131,46 @@ Client *Server::getClientByNickname(const std::string &nick)
 
 
 
+void Server::initCommandTable()
+{
+    _commandTable["PASS"] = &Server::PASS_cmd;
+    _commandTable["NICK"] = &Server::NICK_cmd;
+    _commandTable["USER"] = &Server::USER_cmd;
+    _commandTable["JOIN"] = &Server::JOIN_cmd;
+    _commandTable["PART"] = &Server::PART_cmd;
+    _commandTable["CAP"]  = &Server::CAP_cmd;
+    _commandTable["TOPIC"]= &Server::TOPIC_cmd;
+    _commandTable["INVITE"]= &Server::INVITE_cmd;
+    _commandTable["KICK"] = &Server::KICK_cmd;
+    _commandTable["PRIVMSG"] = &Server::PRIVMSG_cmd;
+    _commandTable["MODE"] = &Server::MODE_cmd;
+    _commandTable["PING"] = &Server::PING_cmd;
+    _commandTable["INFO"] = &Server::INFO_cmd;
+    _commandTable["DEBUGCHANNEL"] = &Server::DEBUGCHANNEL_cmd;
+}
+
+void Server::INFO_cmd(int fd, const Command &cmd)
+{
+    (void)cmd;
+    DebugClientInfo(fd);
+}
+
+void Server::PING_cmd(int fd, const Command &cmd)
+{
+    if (cmd.getParams().empty())
+        return;
+    std::string pong = "PONG :" + cmd.getParams()[0] + "\r\n";
+    send(fd, pong.c_str(), pong.length(), 0);
+    std::cout << "Sent PONG :" << cmd.getParams()[0] << std::endl;
+}
+
+void Server::DEBUGCHANNEL_cmd(int fd, const Command &cmd)
+{
+    (void)fd;
+    if(!cmd.getParams().empty())
+        DebugChannelInfo(cmd.getParams()[0]);
+}
+
 void Server::command_dispatcher(int fd, const Command &cmd)
 {
     Client *client = _clients[fd];
@@ -138,75 +180,25 @@ void Server::command_dispatcher(int fd, const Command &cmd)
         std::cout << "Client fd=" << fd << " is not registered. Command: " << cmd.getCommand() << std::endl;
         if (!isAllowedBeforeRegister(cmd.getCommand()))
         {
-            std::string err = ":irc.server 451 * :You have not registered\r\n";
+            std::string err = ":irc.server " + std::string(ERR_NOTREGISTERED) + " * :You have not registered\r\n";
             std::cout << "Sent 451 * :You have not registered to fd=" << fd << std::endl;
             send(fd, err.c_str(), err.size(), 0);
             return;
         }
     }
 
-    if (cmd.getCommand() == "INFO" || cmd.getCommand() == "info")
+    std::string upperCmd = cmd.getCommand();
+    for (size_t i = 0; i < upperCmd.length(); ++i)
+        upperCmd[i] = std::toupper(upperCmd[i]);
+
+    std::map<std::string, CommandHandler>::iterator it = _commandTable.find(upperCmd);
+    if (it != _commandTable.end())
     {
-        DebugClientInfo(fd);
-    }
-    else if (cmd.getCommand() == "PING" || cmd.getCommand() == "ping")
-    {
-        if (cmd.getParams().empty())
-            return;
-        std::string pong = "PONG :" + cmd.getParams()[0] + "\r\n";
-        send(fd, pong.c_str(), pong.length(), 0);
-        std::cout << "Sent PONG :" << cmd.getParams()[0] << std::endl;
-    }
-    else if (cmd.getCommand() == "DEBUGCHANNEL" || cmd.getCommand() == "debugchannel")
-    {
-        if(!cmd.getParams().empty())
-            DebugChannelInfo(cmd.getParams()[0]);
-    }
-    else if (cmd.getCommand() == "PASS" || cmd.getCommand() == "pass")
-    {
-        PASS_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "NICK" || cmd.getCommand() == "nick")
-    {
-        NICK_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "USER" || cmd.getCommand() == "user")
-    {
-        USER_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "JOIN" || cmd.getCommand() == "join")
-    {
-        JOIN_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "PART" || cmd.getCommand() == "part")
-    {
-        PART_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "CAP" || cmd.getCommand() == "cap")
-    {
-        CAP_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "TOPIC" || cmd.getCommand() == "topic")
-    {
-        TOPIC_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "INVITE" || cmd.getCommand() == "invite")
-        INVITE_cmd(fd, cmd);
-    else if (cmd.getCommand() == "PRIVMSG" || cmd.getCommand() == "privmsg")
-    {
-    PRIVMSG_cmd(fd, cmd);
-    }
-    else if ((cmd.getCommand())== "KICK" || cmd.getCommand() == "kick")
-    {
-        KICK_cmd(fd, cmd);
-    }
-    else if (cmd.getCommand() == "MODE" || cmd.getCommand() == "mode")
-    {
-        MODE_cmd(fd, cmd);
+        (this->*(it->second))(fd, cmd);
     }
     else
     {
         std::cout << "Unknown command '" << cmd.getCommand() << "' from fd=" << fd << std::endl;
-        sendReply(fd, ":irc.server 421 " + cmd.getCommand() + " :Unknown command\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_UNKNOWNCOMMAND) + " " + cmd.getCommand() + " :Unknown command\r\n");
     }
 }

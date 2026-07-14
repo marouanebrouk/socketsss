@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
 
 void Server::PRIVMSG_cmd(int fd, const Command &cmd)
 {
@@ -13,12 +14,12 @@ void Server::PRIVMSG_cmd(int fd, const Command &cmd)
     sender = _clients[fd];
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd, ":irc.server 411 :No recipient given (PRIVMSG)\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NORECIPIENT) + " :No recipient given (PRIVMSG)\r\n");
         return;
     }
     if (cmd.getParams().size() < 2)
     {
-        sendReply(fd, ":irc.server 412 :No text to send\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NOTEXTTOSEND) + " :No text to send\r\n");
         return;
     }
 
@@ -37,14 +38,14 @@ void Server::PRIVMSG_cmd(int fd, const Command &cmd)
     {
         if (_channels.find(target) == _channels.end())
         {
-            sendReply(fd, ":irc.server 403 " + target + " :No such channel\r\n");
+            sendReply(fd, ":irc.server " + std::string(ERR_NOSUCHCHANNEL) + " " + target + " :No such channel\r\n");
             return;
         }
 
         channel = _channels[target];
         if (!channel->isMember(fd))
         {
-            sendReply(fd, ":irc.server 404 " + target + " :Cannot send to channel\r\n");
+            sendReply(fd, ":irc.server " + std::string(ERR_CANNOTSENDTOCHAN) + " " + target + " :Cannot send to channel\r\n");
             return;
         }
         //Broadcast to everyone except sender
@@ -58,7 +59,7 @@ void Server::PRIVMSG_cmd(int fd, const Command &cmd)
         targetClient = getClientByNickname(target);
         if (!targetClient)
         {
-            sendReply(fd, ":irc.server 401 " + target + " :No such nick\r\n");
+            sendReply(fd, ":irc.server " + std::string(ERR_NOSUCHNICK) + " " + target + " :No such nick\r\n");
             return;
         }
 

@@ -2,7 +2,22 @@
 #include <cerrno>
 
 Server::Server(int port , std::string password) :
-        _port(port) , _password(password) , _cmds(NULL) {}
+        _serverSocket(-1), _port(port) , _password(password) , _cmds(NULL) {
+        memset(&addr, 0, sizeof(addr));
+        memset(&addr_client, 0, sizeof(addr_client));
+        memset(&new_user, 0, sizeof(new_user));
+        initCommandTable();
+}
+
+Server::~Server()
+{
+    for (std::map<int, Client*>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+        delete it->second;
+    _clients.clear();
+    for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); ++it)
+        delete it->second;
+    _channels.clear();
+}
 
 bool Server::F_signal = false;
 

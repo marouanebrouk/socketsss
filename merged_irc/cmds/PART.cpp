@@ -1,4 +1,5 @@
 #include "../includes/Server.hpp"
+#include "../includes/ft_irc.hpp"
 
 void Server::PART_cmd(int fd, const Command &cmd)
 {
@@ -11,7 +12,7 @@ void Server::PART_cmd(int fd, const Command &cmd)
 
     if (cmd.getParams().size() < 1)
     {
-        sendReply(fd,":irc.server 461 PART :Not enough parameters\r\n");
+        sendReply(fd,":irc.server " + std::string(ERR_NEEDMOREPARAMS) + " PART :Not enough parameters\r\n");
         return;
     }
 
@@ -19,7 +20,7 @@ void Server::PART_cmd(int fd, const Command &cmd)
 
     if (_channels.find(channelName) == _channels.end())
     {
-        sendReply(fd, ":irc.server 403 " + channelName + " :No such channel\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NOSUCHCHANNEL) + " " + channelName + " :No such channel\r\n");
         return;
     }
 
@@ -27,7 +28,7 @@ void Server::PART_cmd(int fd, const Command &cmd)
 
     if (!channel->isMember(fd))
     {
-        sendReply(fd, ":irc.server 442 " + channelName + " :You're not on that channel\r\n");
+        sendReply(fd, ":irc.server " + std::string(ERR_NOTONCHANNEL) + " " + channelName + " :You're not on that channel\r\n");
         return;
     }
 
